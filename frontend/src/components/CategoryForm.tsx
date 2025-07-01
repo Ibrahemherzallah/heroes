@@ -1,13 +1,13 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
-
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/firebase';
 export interface Category {
-  id: string;
+  id?: string;
   name: string;
   description: string;
   image: string;
@@ -16,7 +16,7 @@ export interface Category {
 interface CategoryFormProps {
   category?: Category;
   onSave: (category: Omit<Category, 'id'> & { id?: string }) => void;
-  onCancel: () => void;
+    onCancel: () => void;
 }
 
 const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSave, onCancel }) => {
@@ -28,18 +28,27 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSave, onCancel 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(category?.image || '');
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagePreview(result);
-        setFormData(prev => ({ ...prev, image: result }));
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    const storageRef = ref(storage, `categories/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on('state_changed',
+        (snapshot) => {
+          // Optional: Progress indicator
+        },
+        (error) => {
+          toast({ title: 'خطأ', description: 'فشل رفع الصورة', variant: 'destructive' });
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          setImageFile(file);
+          setImagePreview(downloadURL);
+          setFormData(prev => ({ ...prev, image: downloadURL }));
+        }
+    );
   };
 
   const removeImage = () => {
