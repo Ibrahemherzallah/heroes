@@ -73,7 +73,7 @@ const Index = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-heroes-blue to-heroes-blue-light py-16">
+      <section className="bg-gradient-to-r from-heroes-gradient-start to-heroes-gradient-end py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
             مرحباً بك في Heroes

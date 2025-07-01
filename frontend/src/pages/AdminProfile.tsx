@@ -23,69 +23,106 @@ const AdminProfile = () => {
       navigate('/admin/login');
     }
   }, [navigate]);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch('http://localhost:4040/api/auth/profile', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+          },
+        });
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
+        const data = await res.json();
+        setProfileData({
+          username: data.userName,
+          email: data.email,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+
+      } catch (err) {
+        console.error('Error loading profile:', err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!profileData.username || !profileData.email) {
-      toast({
-        title: "خطأ",
-        description: "يرجى ملء جميع الحقول المطلوبة",
-        variant: "destructive"
-      });
-      return;
-    }
 
-    // Here you would typically send the data to your backend
-    toast({
-      title: "تم التحديث",
-      description: "تم تحديث بيانات الملف الشخصي بنجاح",
-    });
+    try {
+      const res = await fetch('http://localhost:4040/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: JSON.stringify({
+          userName: profileData.username,
+          email: profileData.email,
+        }),
+      });
+
+      const data = await res.json();
+      toast({
+        title: "تم التحديث",
+        description: "تم تحديث البيانات بنجاح",
+      });
+
+    } catch (err) {
+      console.error('Update error:', err);
+      toast({
+        title: "فشل التحديث",
+        description: "حدث خطأ أثناء التحديث",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!profileData.currentPassword || !profileData.newPassword || !profileData.confirmPassword) {
+
+    try {
+      const res = await fetch('http://localhost:4040/api/auth/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: JSON.stringify({
+          currentPassword: profileData.currentPassword,
+          newPassword: profileData.newPassword,
+          confirmPassword: profileData.confirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "تم التغيير",
+        description: data.message,
+      });
+
+      setProfileData(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }));
+
+    } catch (err: any) {
       toast({
         title: "خطأ",
-        description: "يرجى ملء جميع حقول كلمة المرور",
+        description: err.message,
         variant: "destructive"
       });
-      return;
     }
-
-    if (profileData.newPassword !== profileData.confirmPassword) {
-      toast({
-        title: "خطأ",
-        description: "كلمة المرور الجديدة وتأكيدها غير متطابقتين",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (profileData.newPassword.length < 6) {
-      toast({
-        title: "خطأ",
-        description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Here you would typically send the data to your backend
-    toast({
-      title: "تم التحديث",
-      description: "تم تغيير كلمة المرور بنجاح",
-    });
-    
-    // Clear password fields
-    setProfileData(prev => ({
-      ...prev,
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    }));
   };
 
   return (
@@ -213,7 +250,7 @@ const AdminProfile = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">تاريخ إنشاء الحساب:</span>
-                  <span className="font-medium">١ يناير ٢٠٢٤</span>
+                  <span className="font-medium">15/7/2025</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">آخر تسجيل دخول:</span>

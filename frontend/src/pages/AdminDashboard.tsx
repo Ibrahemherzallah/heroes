@@ -34,17 +34,14 @@ const AdminDashboard = () => {
       isSoldOut: false
     }
   ]);
-
-  const [categories, setCategories] = useState<Category[]>([
-    { id: '1', name: 'أجهزة الاستقبال', description: 'رسيفرات عالية الجودة لاستقبال القنوات المختلفة', image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=400&fit=crop' },
-    { id: '2', name: 'كاميرات المراقبة', description: 'كاميرات مراقبة ذكية بأحدث التقنيات', image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop' },
-    { id: '3', name: 'إكسسوارات الجوال', description: 'شواحن، حافظات، وإكسسوارات الهواتف الذكية', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=400&fit=crop' }
-  ]);
-
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [activeTab,setActiveTab] = useState('products')
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('adminLoggedIn');
@@ -52,9 +49,27 @@ const AdminDashboard = () => {
       navigate('/admin/login');
     }
   }, [navigate]);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('http://localhost:4040/api/category');
+        if (!res.ok) throw new Error('فشل تحميل الفئات');
+
+        const data = await res.json();
+        setCategories(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [activeTab]);
 
   const handleLogout = () => {
-    localStorage.removeItem('adminLoggedIn');
+    localStorage.removeItem('adminToken');
     toast({
       title: "تم تسجيل الخروج",
       description: "تم تسجيل خروجك بنجاح",
@@ -106,49 +121,71 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleSaveCategory = (categoryData: Omit<Category, 'id'> & { id?: string }) => {
-    if (categoryData.id) {
-      // Edit existing category
-      setCategories(prev => prev.map(c => 
-        c.id === categoryData.id 
-          ? { ...categoryData, id: categoryData.id } as Category
-          : c
-      ));
-      toast({
-        title: "تم تحديث الفئة",
-        description: `تم تحديث ${categoryData.name} بنجاح`,
+  const handleSaveCategory = async (category: Category) => {
+    try {
+      const method = category.id ? 'PUT' : 'POST';
+      const url = category.id
+          ? `http://localhost:4040/api/category/${category.id}`
+          : `http://localhost:4040/api/category`;
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(category),
       });
-    } else {
-      // Add new category
-      const newCategory: Category = {
-        ...categoryData,
-        id: Date.now().toString(),
-        image: categoryData.image || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&h=400&fit=crop'
-      };
-      setCategories(prev => [...prev, newCategory]);
+
+      if (!res.ok) throw new Error('فشل حفظ الفئة');
+
+      const data = await res.json();
       toast({
-        title: "تم إضافة الفئة",
-        description: `تم إضافة ${categoryData.name} بنجاح`,
+        title: "تم الحفظ",
+        description: `تم ${category.id ? 'تحديث' : 'إضافة'} الفئة بنجاح`,
+      });
+
+      setShowCategoryForm(false);
+      // Refresh categories if needed
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "خطأ",
+        description: err.message,
+        variant: "destructive",
       });
     }
-    
-    setShowCategoryForm(false);
-    setEditingCategory(null);
   };
 
-  const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-    toast({
-      title: "تم حذف الفئة",
-      description: "تم حذف الفئة بنجاح",
-    });
-  };
+  const deleteCategory = async (id: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذه الفئة؟')) return;
 
+    try {
+      const res = await fetch(`http://localhost:4040/api/category/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) throw new Error('فشل حذف الفئة');
+
+      toast({
+        title: 'تم الحذف',
+        description: 'تم حذف الفئة بنجاح',
+      });
+
+      // Refresh the category list
+      setCategories((prev) => prev.filter((cat) => cat._id !== id));
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: 'خطأ',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
   const filteredProducts = products.filter(product =>
     product.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -175,34 +212,26 @@ const AdminDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="products" className="space-y-8">
+        <Tabs defaultValue="products" onValueChange={setActiveTab} className="space-y-8">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="products">إدارة المنتجات</TabsTrigger>
             <TabsTrigger value="categories">إدارة الفئات</TabsTrigger>
             <TabsTrigger value="orders">الطلبات</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="products" className="space-y-6">
+          <TabsContent value="products"  className="space-y-6">
             {/* Products List */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>قائمة المنتجات ({filteredProducts.length})</CardTitle>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      className="bg-heroes-red hover:bg-heroes-red/90"
-                      onClick={() => setShowProductForm(true)}
-                    >
+                    <Button className="bg-heroes-red hover:bg-heroes-red/90" onClick={() => setShowProductForm(true)}>
                       إضافة منتج جديد
                     </Button>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        placeholder="البحث برقم أو اسم المنتج..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 w-64"
-                      />
+                      <Input placeholder="البحث برقم أو اسم المنتج..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 w-64"/>
                     </div>
                   </div>
                 </div>
@@ -211,11 +240,7 @@ const AdminDashboard = () => {
                 <div className="space-y-4">
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-16 h-16 object-cover rounded"
-                      />
+                      <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded"/>
                       
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -262,46 +287,40 @@ const AdminDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>إدارة الفئات ({categories.length})</CardTitle>
-                  <Button 
-                    className="bg-heroes-red hover:bg-heroes-red/90"
-                    onClick={() => setShowCategoryForm(true)}
+                  <Button
+                      className="bg-heroes-red hover:bg-heroes-red/90"
+                      onClick={() => setShowCategoryForm(true)}
                   >
                     إضافة فئة جديدة
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{category.name}</h3>
-                        <p className="text-sm text-gray-600">{category.description}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setEditingCategory(category)}
-                        >
-                          تعديل
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => deleteCategory(category.id)}
-                        >
-                          حذف
-                        </Button>
-                      </div>
+                {loading ? (
+                    <p>جاري التحميل...</p>
+                ) : error ? (
+                    <p className="text-red-500">⚠️ {error}</p>
+                ) : (
+                    <div className="space-y-4">
+                      {categories.map((category) => (
+                          <div key={category._id} className="flex items-center gap-4 p-4 border rounded-lg">
+                            <img src={category.image} alt={category.name} className="w-16 h-16 object-cover rounded"/>
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{category.name}</h3>
+                              <p className="text-sm text-gray-600">{category.description}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => setEditingCategory(category)}>
+                                تعديل
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => deleteCategory(category._id)}>
+                                حذف
+                              </Button>
+                            </div>
+                          </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -327,7 +346,7 @@ const AdminDashboard = () => {
       {/* Add Product Dialog */}
       <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
         <DialogContent className="max-w-4xl">
-          <DialogHeader>
+          <DialogHeader style={{textAlign:'start'}} >
             <DialogTitle>إضافة منتج جديد</DialogTitle>
           </DialogHeader>
           <ProductAddForm
@@ -340,7 +359,7 @@ const AdminDashboard = () => {
       {/* Edit Product Dialog */}
       <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
         <DialogContent className="max-w-4xl">
-          <DialogHeader>
+          <DialogHeader style={{textAlign:'start'}}>
             <DialogTitle>تعديل المنتج</DialogTitle>
           </DialogHeader>
           {editingProduct && (
@@ -354,16 +373,10 @@ const AdminDashboard = () => {
       </Dialog>
 
       {/* Add/Edit Category Dialog */}
-      <Dialog 
-        open={showCategoryForm || !!editingCategory} 
-        onOpenChange={() => {
-          setShowCategoryForm(false);
-          setEditingCategory(null);
-        }}
-      >
+      <Dialog open={showCategoryForm || !!editingCategory} onOpenChange={() => {setShowCategoryForm(false);setEditingCategory(null);}}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle style={{textAlign:'start'}}>
               {editingCategory ? 'تعديل الفئة' : 'إضافة فئة جديدة'}
             </DialogTitle>
           </DialogHeader>
