@@ -3,14 +3,13 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export interface Product {
   id: string;
-  name: string;
-  price: number;
+  productName: string;
+  customerPrice: number;
   salePrice?: number;
   isOnSale?: boolean;
   description: string;
-  image: string;
-  images?: string[];
-  category: string;
+  image: string[]; // image is an array now
+  categoryId: string;
   isSoldOut?: boolean;
 }
 

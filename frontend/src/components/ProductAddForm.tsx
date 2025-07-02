@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,64 +6,81 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import { Product } from '@/contexts/CartContext';
 import { Upload, X } from 'lucide-react';
-
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/firebase';
 interface ProductAddFormProps {
   onSave: (product: Omit<Product, 'id'> & { id?: string }) => void;
   onCancel: () => void;
+  categories: any
 }
 
-const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel }) => {
-  const [formData, setFormData] = useState({
+const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categories }) => {
+  const [formData, setFormData] = useState<Product>({
     id: '',
-    name: '',
-    price: '',
-    salePrice: '',
-    description: '',
-    image: '',
-    images: [] as string[],
-    category: '',
+    productName: '',
+    customerPrice: 0,
+    salePrice: 0,
     isOnSale: false,
+    description: '',
+    image: [],
+    categoryId: '',
     isSoldOut: false
   });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (imagePreviews.length + files.length > 5) {
+    if (files.length + imagePreviews.length > 5) {
       toast({
-        title: "خطأ",
-        description: "يمكن إضافة 5 صور كحد أقصى للمنتج الواحد",
-        variant: "destructive"
+        title: 'خطأ',
+        description: 'يمكن تحميل حتى 5 صور فقط',
+        variant: 'destructive',
       });
       return;
     }
 
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagePreviews(prev => [...prev, result]);
-        setFormData(prev => ({ 
-          ...prev, 
-          images: [...prev.images, result],
-          image: prev.image || result // Set first image as main image
-        }));
-      };
-      reader.readAsDataURL(file);
+    const uploadPromises = files.map(async (file) => {
+      const storageRef = ref(storage, `products/${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      return new Promise<string>((resolve, reject) => {
+        uploadTask.on(
+            'state_changed',
+            () => {},
+            (error) => reject(error),
+            async () => {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(downloadURL);
+            }
+        );
+      });
     });
 
-    setImageFiles(prev => [...prev, ...files]);
+    try {
+      const urls = await Promise.all(uploadPromises);
+      setImagePreviews((prev) => [...prev, ...urls]);
+      setFormData((prev) => ({
+        ...prev,
+        image: [...prev.image, ...urls], // array of URLs
+      }));
+    } catch (error) {
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء رفع الصور',
+        variant: 'destructive',
+      });
+    }
   };
+
 
   const removeImage = (index: number) => {
     setImageFiles(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => {
       const newPreviews = prev.filter((_, i) => i !== index);
-      setFormData(prevData => ({
-        ...prevData,
-        images: newPreviews,
-        image: newPreviews[0] || ''
+      setFormData(prev => ({
+        ...prev,
+        image: newPreviews,
       }));
       return newPreviews;
     });
@@ -72,8 +88,8 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel }) => 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.id || !formData.name || !formData.price || !formData.category) {
+
+    if (!formData.id || !formData.productName || !formData.customerPrice || !formData.categoryId || formData.image.length === 0) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -83,16 +99,22 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel }) => 
     }
 
     const productData = {
-      ...formData,
-      price: parseFloat(formData.price),
-      salePrice: formData.salePrice ? parseFloat(formData.salePrice) : undefined,
+      id: formData.id,
+      productName: formData.productName,
+      categoryId: formData.categoryId,
+      image: formData.image, // array of image URLs
+      customerPrice: formData.customerPrice,
+      salePrice: formData.salePrice,
+      isSoldOut: formData.isSoldOut,
+      isOnSale: formData.isOnSale,
+      description: formData.description,
     };
 
     onSave(productData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto">
       <div>
         <label className="block text-sm font-medium mb-2">رقم المنتج *</label>
         <Input value={formData.id} onChange={(e) => setFormData(prev => ({ ...prev, id: e.target.value }))} placeholder="مثال: REC001" required/>
@@ -100,24 +122,28 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel }) => 
 
       <div>
         <label className="block text-sm font-medium mb-2">اسم المنتج *</label>
-        <Input value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} placeholder="اسم المنتج" required/>
+        <Input value={formData.productName} onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))} placeholder="اسم المنتج" required/>
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-2">السعر *</label>
-        <Input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))} placeholder="0.00" required/>
+        <Input type="number" step="0.01" value={formData.customerPrice} onChange={(e) => setFormData(prev => ({ ...prev, customerPrice: e.target.value }))} placeholder="0.00" required/>
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-2">الفئة *</label>
-        <select className="w-full px-3 py-2 border border-gray-300 rounded-md" value={formData.category} onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))} required>
+        <select
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            value={formData.categoryId}
+            onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
+            required
+        >
           <option value="">اختر الفئة</option>
-          <option value="receiver">أجهزة الاستقبال</option>
-          <option value="cameras">كاميرات المراقبة</option>
-          <option value="mobile-accessories">إكسسوارات الجوال</option>
-          <option value="computer-accessories">إكسسوارات الكمبيوتر</option>
-          <option value="internet-subscription">اشتراكات الإنترنت</option>
-          <option value="electronic-items">الأجهزة الإلكترونية</option>
+          {categories.map(category => (
+              <option key={category._id} value={category._id}>
+                {category.name}
+              </option>
+          ))}
         </select>
       </div>
 
@@ -136,7 +162,7 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel }) => 
               ))}
             </div>
           )}
-          
+
           {imagePreviews.length < 5 && (
             <>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
@@ -173,7 +199,18 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel }) => 
       {formData.isOnSale && (
         <div>
           <label className="block text-sm font-medium mb-2">سعر التخفيض</label>
-          <Input type="number" step="0.01" value={formData.salePrice} onChange={(e) => setFormData(prev => ({ ...prev, salePrice: e.target.value }))} placeholder="0.00"/>
+          <Input
+              type="number"
+              step="0.01"
+              value={formData.salePrice}
+              onChange={(e) =>
+                  setFormData(prev => ({
+                    ...prev,
+                    salePrice: parseFloat(e.target.value) || 0
+                  }))
+              }
+              placeholder="0.00"
+          />
         </div>
       )}
 

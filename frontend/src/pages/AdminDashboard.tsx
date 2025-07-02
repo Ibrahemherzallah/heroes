@@ -17,24 +17,8 @@ import { Search, User } from 'lucide-react';
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: 'REC001',
-      name: 'رسيفر HD عالي الدقة',
-      price: 299,
-      salePrice: 249,
-      isOnSale: true,
-      description: 'رسيفر عالي الجودة يدعم القنوات المشفرة وغير المشفرة',
-      image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=400&fit=crop',
-      images: [
-        'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&h=400&fit=crop'
-      ],
-      category: 'receiver',
-      isSoldOut: false
-    }
-  ]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -64,10 +48,26 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
+    if(activeTab === 'products') {
+      const fetchProducts = async () => {
+        try {
+          const res = await fetch('http://localhost:4040/api/product');
+          if (!res.ok) throw new Error('فشل تحميل الفئات');
 
+          const data = await res.json();
+          setProducts(data);
+        } catch (err: any) {
+          console.error(err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProducts()
+    }
     fetchCategories();
   }, [activeTab]);
-
+  console.log("The products is : ", products)
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     toast({
@@ -77,51 +77,101 @@ const AdminDashboard = () => {
     navigate('/admin/login');
   };
 
-  const handleAddProduct = (productData: Omit<Product, 'id'> & { id?: string }) => {
-    // Check if product ID already exists
-    if (products.some(p => p.id === productData.id)) {
+  const handleSaveProduct = async (product: Product) => {
+    try {
+      const res = await fetch('http://localhost:4040/api/product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(product),
+      });
+
+      if (!res.ok) {
+        throw new Error('فشل حفظ المنتج');
+      }
+
+      const data = await res.json();
+      toast({
+        title: 'تم الحفظ',
+        description: 'تم إضافة المنتج بنجاح',
+      });
+      setShowProductForm(false);
+      // Refresh product list, close modal, etc.
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: 'خطأ',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleEditProduct = async (product: Product) => {
+    console.log("PRODUCT SI : " , product._id)
+    try {
+      const res = await fetch(`http://localhost:4040/api/product/${product._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(product),
+      });
+
+      if (!res.ok) {
+        throw new Error('فشل تحديث المنتج');
+      }
+
+      const updatedProduct = await res.json();
+
+      setProducts(prev =>
+          prev.map(p => (p.id === updatedProduct.id ? updatedProduct : p))
+      );
+      setEditingProduct(null);
+      toast({
+        title: "تم تحديث المنتج",
+        description: `تم تحديث ${updatedProduct.productName} بنجاح`,
+      });
+    } catch (err: any) {
+      console.error(err);
       toast({
         title: "خطأ",
-        description: "رقم المنتج موجود بالفعل",
-        variant: "destructive"
+        description: err.message,
+        variant: 'destructive',
       });
-      return;
     }
-
-    const product: Product = {
-      ...productData,
-      id: productData.id!,
-      image: productData.image || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&h=400&fit=crop',
-      images: productData.images?.length ? productData.images : [productData.image || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&h=400&fit=crop']
-    };
-
-    setProducts(prev => [...prev, product]);
-    setShowProductForm(false);
-
-    toast({
-      title: "تم إضافة المنتج",
-      description: `تم إضافة ${product.name} بنجاح`,
-    });
   };
 
-  const handleEditProduct = (product: Product) => {
-    setProducts(prev => prev.map(p => p.id === product.id ? product : p));
-    setEditingProduct(null);
-    toast({
-      title: "تم تحديث المنتج",
-      description: `تم تحديث ${product.name} بنجاح`,
-    });
-  };
+  const deleteProduct = async (id: string) => {
+    try {
+      const res = await fetch(`http://localhost:4040/api/product/${id}`, {
+        method: 'DELETE',
+      });
 
-  const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-    toast({
-      title: "تم حذف المنتج",
-      description: "تم حذف المنتج بنجاح",
-    });
+      if (!res.ok) {
+        throw new Error('فشل حذف المنتج');
+      }
+
+      setProducts(prev => prev.filter(p => p.id !== id));
+      toast({
+        title: "تم حذف المنتج",
+        description: "تم حذف المنتج بنجاح",
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "خطأ",
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSaveCategory = async (category: Category) => {
+    console.log("category.id in is : ", category.id)
+    console.log("category.id in is : ", category)
+
     try {
       const method = category.id ? 'PUT' : 'POST';
       const url = category.id
@@ -143,7 +193,7 @@ const AdminDashboard = () => {
         title: "تم الحفظ",
         description: `تم ${category.id ? 'تحديث' : 'إضافة'} الفئة بنجاح`,
       });
-
+      setEditingCategory(false);
       setShowCategoryForm(false);
       // Refresh categories if needed
     } catch (err: any) {
@@ -182,9 +232,10 @@ const AdminDashboard = () => {
       });
     }
   };
+
   const filteredProducts = products.filter(product =>
     product.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    product.productName.toLowerCase().includes(searchQuery.toLowerCase())
   );
   return (
     <div className="min-h-screen bg-gray-50">
@@ -220,7 +271,6 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="products"  className="space-y-6">
-            {/* Products List */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -240,38 +290,30 @@ const AdminDashboard = () => {
                 <div className="space-y-4">
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded"/>
-                      
+                      <img src={product.image} alt={product.productName} className="w-16 h-16 object-cover rounded"/>
+
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold">{product.name}</h3>
+                          <h3 className="font-semibold">{product.productName}</h3>
                           <Badge variant="outline" className="text-xs">
                             {product.id}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{product.category}</p>
+                        <p className="text-sm text-gray-600">{product.categoryId.name}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="font-medium text-heroes-red">
-                            {product.isOnSale && product.salePrice ? product.salePrice : product.price} ر.س
+                            {product.isOnSale && product.salePrice ? product.salePrice : product.customerPrice} ₪
                           </span>
                           {product.isOnSale && <Badge variant="secondary">تخفيض</Badge>}
                           {product.isSoldOut && <Badge variant="destructive">نفدت الكمية</Badge>}
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingProduct(product)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => setEditingProduct(product)}>
                           تعديل
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteProduct(product.id)}
-                        >
+                        <Button variant="destructive" size="sm" onClick={() => deleteProduct(product.id)}>
                           حذف
                         </Button>
                       </div>
@@ -350,14 +392,15 @@ const AdminDashboard = () => {
             <DialogTitle>إضافة منتج جديد</DialogTitle>
           </DialogHeader>
           <ProductAddForm
-            onSave={handleAddProduct}
+            onSave={handleSaveProduct}
+            categories={categories}
             onCancel={() => setShowProductForm(false)}
           />
         </DialogContent>
       </Dialog>
 
       {/* Edit Product Dialog */}
-      <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
+      <Dialog open={!!editingProduct} onOpenChange={() =>{setShowProductForm(false); setEditingProduct(null)}}>
         <DialogContent className="max-w-4xl">
           <DialogHeader style={{textAlign:'start'}}>
             <DialogTitle>تعديل المنتج</DialogTitle>
@@ -365,6 +408,7 @@ const AdminDashboard = () => {
           {editingProduct && (
             <ProductEditForm
               product={editingProduct}
+              categories={categories}
               onSave={handleEditProduct}
               onCancel={() => setEditingProduct(null)}
             />

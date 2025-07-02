@@ -68,10 +68,12 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSave, onCancel 
       });
       return;
     }
+console.log("neww category?.id",category?.id)
+    console.log("neww category?.id",category?._id)
 
     onSave({
       ...formData,
-      id: category?.id
+      id: category?._id
     });
   };
 
