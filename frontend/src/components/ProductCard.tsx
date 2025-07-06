@@ -12,7 +12,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
-
+  console.log("The product is : ",  product)
   const handleAddToCart = () => {
     if (product.isSoldOut) {
       toast({
@@ -26,20 +26,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     addToCart(product);
     toast({
       title: "تم إضافة المنتج",
-      description: `تم إضافة ${product.name} إلى السلة`,
+      description: `تم إضافة ${product.productName} إلى السلة`,
     });
   };
 
-  const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.price;
+  const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.customerPrice;
 
   return (
     <Card className="group hover:shadow-lg transition-shadow duration-300 animate-fade-in">
       <CardContent className="p-4">
-        <Link to={`/product/${product.id}`}>
+        <Link to={`/product/${product._id}`}>
           <div className="aspect-square relative mb-4 overflow-hidden rounded-lg bg-gray-100 cursor-pointer">
             <img
               src={product.image}
-              alt={product.name}
+              alt={product.productName}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             
@@ -59,7 +59,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         
         <Link to={`/product/${product.id}`}>
           <h3 className="font-semibold text-lg mb-2 line-clamp-2 hover:text-heroes-red transition-colors cursor-pointer">
-            {product.name}
+            {product.productName}
           </h3>
         </Link>
         
@@ -69,12 +69,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xl font-bold text-heroes-red">
-            {displayPrice.toFixed(2)} ر.س
+            {displayPrice?.toFixed(2)} ₪
           </span>
           
           {product.isOnSale && product.salePrice && (
             <span className="text-sm text-gray-500 line-through">
-              {product.price.toFixed(2)} ر.س
+              {product?.customerPrice?.toFixed(2)} ₪
             </span>
           )}
         </div>
