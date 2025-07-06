@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,23 @@ import ProductEditForm from '@/components/ProductEditForm';
 import ProductAddForm from '@/components/ProductAddForm';
 import { Search, User } from 'lucide-react';
 
+
+interface Order {
+  _id: string;
+  fullName: string;
+  phoneNumber: string;
+  region: string;
+  city: string;
+  notes?: string;
+  price: number;
+  deliveryPrice: number;
+  numOfItems: number;
+  productId: string;
+  createdAt: string;
+}
+
+
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,6 +42,7 @@ const AdminDashboard = () => {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [activeTab,setActiveTab] = useState('products')
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('adminLoggedIn');
@@ -65,9 +82,22 @@ const AdminDashboard = () => {
       };
       fetchProducts()
     }
+    if(activeTab === 'orders') {
+      const fetchOrders = async () => {
+        try {
+          const res = await fetch(`http://localhost:4040/api/order`);
+          const data = await res.json();
+          setOrders(data);
+        } catch (error) {
+          console.error('Error fetching orders:', error);
+        }
+      };
+
+      fetchOrders();
+    }
     fetchCategories();
   }, [activeTab]);
-  console.log("The products is : ", products)
+
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     toast({
@@ -373,16 +403,39 @@ const AdminDashboard = () => {
                 <CardTitle>الطلبات الأخيرة</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-gray-500">لا توجد طلبات حالياً</p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    سيتم عرض الطلبات هنا عند وجودها
-                  </p>
-                </div>
+                {orders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">لا توجد طلبات حالياً</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        سيتم عرض الطلبات هنا عند وجودها
+                      </p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                      {orders.map((order) => (
+                          <div key={order._id} className="border p-4 rounded-lg shadow-sm">
+                            <div className="flex justify-between items-center mb-2">
+                              <h3 className="text-lg font-semibold">{order.fullName}</h3>
+                              <span className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleString()}</span>
+                            </div>
+                            <p><strong>الهاتف :</strong><span style={{opacity:'0'}}>s</span><span>{order.phoneNumber}</span> </p>
+                            <p><strong>  المنطقة :</strong><span style={{opacity:'0'}}>s</span>{order.region} - {order.city} </p>
+                            <p><strong>السعر :</strong><span style={{opacity:'0'}}>s</span> {order.price}₪</p>
+                            <p><strong>التوصيل :</strong><span style={{opacity:'0'}}>s</span> {order.deliveryPrice}₪</p>
+                            {order.notes && <p><strong>ملاحظات :</strong><span style={{opacity:'0'}}>s</span> {order.notes}</p>}
+                            <p><strong>المنتجات :</strong></p>
+                            <ul className="list-disc pl-5">
+                              {order?.products?.map((p, i) => (
+                                  <li key={i}> PID: {p.productId} - Amount:{p.quantity} </li>
+                              ))}
+                            </ul>
+                          </div>
+                      ))}
+                    </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </TabsContent>        </Tabs>
       </main>
 
       {/* Add Product Dialog */}

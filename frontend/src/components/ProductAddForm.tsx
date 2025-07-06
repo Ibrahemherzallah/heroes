@@ -24,10 +24,13 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
     description: '',
     image: [],
     categoryId: '',
-    isSoldOut: false
+    isSoldOut: false,
+    url: '',
+    properties: []
   });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [propertyInput, setPropertyInput] = useState<string>('');
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -73,7 +76,23 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
     }
   };
 
+  const handleAddProperty = () => {
+    if (propertyInput.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        properties: [...(prev.properties || []), propertyInput.trim()],
+      }));
+      setPropertyInput('');
+    }
+  };
 
+  const handleRemoveProperty = (index: number) => {
+    setFormData(prev => {
+      const updated = [...(prev.properties || [])];
+      updated.splice(index, 1);
+      return { ...prev, properties: updated };
+    });
+  };
   const removeImage = (index: number) => {
     setImageFiles(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => {
@@ -102,13 +121,16 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
       id: formData.id,
       productName: formData.productName,
       categoryId: formData.categoryId,
-      image: formData.image, // array of image URLs
+      image: formData.image,
       customerPrice: formData.customerPrice,
       salePrice: formData.salePrice,
       isSoldOut: formData.isSoldOut,
       isOnSale: formData.isOnSale,
       description: formData.description,
+      url: formData.url,
+      properties: formData.properties,
     };
+
 
     onSave(productData);
   };
@@ -172,10 +194,7 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
                 </p>
               </div>
               <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" id="new-product-images-upload"/>
-              <label
-                htmlFor="new-product-images-upload"
-                className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
+              <label htmlFor="new-product-images-upload" className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                 <Upload className="h-4 w-4 mr-2" />
                 اختيار صور
               </label>
@@ -183,6 +202,47 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
           )}
         </div>
       </div>
+
+
+
+
+      <div className="md:col-span-2">
+        <label className="block text-sm font-medium mb-2">رابط المنتج (اختياري)</label>
+        <Input
+            type="url"
+            value={formData.url}
+            onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+            placeholder="https://example.com"
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <label className="block text-sm font-medium mb-2">الخصائص (اختياري)</label>
+        <div className="flex gap-2 mb-2">
+          <Input
+              value={propertyInput}
+              onChange={(e) => setPropertyInput(e.target.value)}
+              placeholder="مثال: لون أحمر، حجم متوسط"
+          />
+          <Button type="button" onClick={handleAddProperty}>
+            إضافة
+          </Button>
+        </div>
+        {formData.properties && formData.properties.length > 0 && (
+            <ul className="space-y-1">
+              {formData.properties.map((prop, index) => (
+                  <li key={index} className="flex items-center justify-between bg-gray-100 p-2 rounded">
+                    <span>{prop}</span>
+                    <Button variant="destructive" size="sm" onClick={() => handleRemoveProperty(index)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </li>
+              ))}
+            </ul>
+        )}
+      </div>
+
+
 
       <div className="md:col-span-2">
         <label className="block text-sm font-medium mb-2">الوصف</label>
@@ -199,18 +259,12 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
       {formData.isOnSale && (
         <div>
           <label className="block text-sm font-medium mb-2">سعر التخفيض</label>
-          <Input
-              type="number"
-              step="0.01"
-              value={formData.salePrice}
-              onChange={(e) =>
+          <Input type="number" step="0.01" value={formData.salePrice} onChange={(e) =>
                   setFormData(prev => ({
                     ...prev,
                     salePrice: parseFloat(e.target.value) || 0
                   }))
-              }
-              placeholder="0.00"
-          />
+              } placeholder="0.00"/>
         </div>
       )}
 
