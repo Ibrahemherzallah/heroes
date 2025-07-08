@@ -80,7 +80,6 @@ export const getProfile = async (req, res) => {
     }
 };
 
-
 export const updateProfile = async (req, res) => {
     const { userName, email } = req.body;
 
@@ -97,7 +96,6 @@ export const updateProfile = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
 
 export const changePassword = async (req, res) => {
     const { currentPassword, newPassword, confirmPassword } = req.body;
