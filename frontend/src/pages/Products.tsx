@@ -47,6 +47,7 @@ const Products = () => {
 
     fetchProducts();
   }, [categoryId]);
+  console.log("The products si : ", products)
   const getCategoryName = (categoryId: string) => {
     const categoryNames: { [key: string]: string } = {
       'receiver': 'أجهزة الاستقبال',
@@ -66,7 +67,7 @@ const Products = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h1 className="text-4xl font-bold text-center mb-12 text-gray-900">
-            {categoryFilter ? getCategoryName(categoryFilter) : 'جميع المنتجات'}
+            {categoryId ? products[0]?.categoryId?.name : 'جميع المنتجات'}
           </h1>
           {loading ? (
               <p className="text-center text-lg font-semibold text-gray-500">جاري تحميل المنتجات...</p>

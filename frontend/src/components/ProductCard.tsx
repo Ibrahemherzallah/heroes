@@ -31,7 +31,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.customerPrice;
-
+  console.log("NEWWW : " , product)
   return (
     <Card className="group hover:shadow-lg transition-shadow duration-300 animate-fade-in">
       <CardContent className="p-4">
@@ -79,20 +79,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
       </CardContent>
-      
-      <CardFooter className="p-4 pt-0">
-        <Button 
-          onClick={handleAddToCart}
-          className={`w-full ${
-            product.isSoldOut 
-              ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed' 
-              : 'bg-heroes-red hover:bg-heroes-red/90'
-          }`}
-          disabled={product.isSoldOut}
-        >
-          {product.isSoldOut ? 'نفدت الكمية' : 'إضافة للسلة'}
-        </Button>
-      </CardFooter>
+
+      {
+          product?.categoryId?.name !== "إشتراكات" && (
+              <CardFooter className="p-4 pt-0">
+                <Button onClick={handleAddToCart} className={`w-full ${product.isSoldOut
+                    ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
+                    : 'bg-heroes-red hover:bg-heroes-red/90'
+                }`}
+                        disabled={product.isSoldOut}
+                >
+                  {product.isSoldOut ? 'نفدت الكمية' : 'إضافة للسلة'}
+                </Button>
+              </CardFooter>
+          )
+      }
     </Card>
   );
 };

@@ -138,7 +138,7 @@ export const sendWhatsAppMessage = async (req, res) => {
     try {
         const response = await client.messages.create({
             from: `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`,
-            to: 'whatsapp:+972597250539',
+            to: 'whatsapp:+972592572788',
             body: message
         });
 
@@ -172,7 +172,7 @@ export const sendContactUsMessage = async (req, res) => {
     try {
         const response = await client.messages.create({
             from: `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`,
-            to: 'whatsapp:+972597250539',
+            to: 'whatsapp:+972592572788',
             body: message
         });
 

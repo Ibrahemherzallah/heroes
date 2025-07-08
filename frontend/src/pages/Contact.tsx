@@ -157,7 +157,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold">رقم الهاتف</h3>
-                      <p className="text-gray-600">+966 50 123 4567</p>
+                      <p className="text-gray-600">972-59-257-2788+</p>
                     </div>
                   </div>
                 </CardContent>
@@ -171,7 +171,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold">البريد الإلكتروني</h3>
-                      <p className="text-gray-600">info@heroes.com</p>
+                      <p className="text-gray-600">heroestechnologecompany@gmail.com</p>
                     </div>
                   </div>
                 </CardContent>
@@ -185,7 +185,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold">العنوان</h3>
-                      <p className="text-gray-600">الرياض، المملكة العربية السعودية</p>
+                      <p className="text-gray-600">جنين، شارع حيفا</p>
                     </div>
                   </div>
                 </CardContent>
@@ -200,7 +200,6 @@ const Contact = () => {
                     <div>
                       <h3 className="font-semibold">ساعات العمل</h3>
                       <p className="text-gray-600">السبت - الخميس: 9:00 ص - 10:00 م</p>
-                      <p className="text-gray-600">الجمعة: 2:00 م - 10:00 م</p>
                     </div>
                   </div>
                 </CardContent>

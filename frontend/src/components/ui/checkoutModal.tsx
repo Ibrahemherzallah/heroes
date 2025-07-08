@@ -96,13 +96,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             });
 
             clearCart();
-            setFormData({
-                fullName: '',
-                phoneNumber: '',
-                region: '',
-                city: '',
-                notes: ''
-            });
+            setFormData({fullName: '', phoneNumber: '', region: '', city: '', notes: ''});
             onClose();
 
         } catch (error: any) {
@@ -135,26 +129,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <Label htmlFor="fullName">الاسم الكامل *</Label>
-                        <Input
-                            id="fullName"
-                            type="text"
-                            value={formData.fullName}
-                            onChange={(e) => handleInputChange('fullName', e.target.value)}
-                            placeholder="أدخل الاسم الكامل"
-                            required
-                        />
+                        <Input id="fullName" type="text" value={formData.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} placeholder="أدخل الاسم الكامل" required/>
                     </div>
 
                     <div>
                         <Label htmlFor="phoneNumber">رقم الهاتف (مع المقدمة) *</Label>
-                        <Input
-                            id="phoneNumber"
-                            type="tel"
-                            value={formData.phoneNumber}
-                            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                            placeholder="مثال: +970599123456"
-                            required
-                        />
+                        <Input id="phoneNumber" type="tel" value={formData.phoneNumber} onChange={(e) => handleInputChange('phoneNumber', e.target.value)} placeholder="مثال: +970599123456" required/>
                     </div>
 
                     <div>
@@ -180,25 +160,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
 
                     <div>
                         <Label htmlFor="city">المدينة *</Label>
-                        <Input
-                            id="city"
-                            type="text"
-                            value={formData.city}
-                            onChange={(e) => handleInputChange('city', e.target.value)}
-                            placeholder="أدخل اسم المدينة"
-                            required
-                        />
+                        <Input id="city" type="text" value={formData.city} onChange={(e) => handleInputChange('city', e.target.value)} placeholder="أدخل اسم المدينة" required/>
                     </div>
 
                     <div>
                         <Label htmlFor="notes">ملاحظات</Label>
-                        <Textarea
-                            id="notes"
-                            value={formData.notes}
-                            onChange={(e) => handleInputChange('notes', e.target.value)}
-                            placeholder="أي ملاحظات إضافية (اختياري)"
-                            rows={3}
-                        />
+                        <Textarea id="notes" value={formData.notes} onChange={(e) => handleInputChange('notes', e.target.value)} placeholder="أي ملاحظات إضافية (اختياري)" rows={3}/>
                     </div>
 
                     <div className="border-t pt-4">
@@ -223,11 +190,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                     <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
                         إلغاء
                     </Button>
-                    <Button
-                        onClick={handleSubmit}
-                        className="bg-heroes-red hover:bg-heroes-red/90"
-                        disabled={isSubmitting}
-                    >
+                    <Button onClick={handleSubmit} className="bg-heroes-red hover:bg-heroes-red/90" disabled={isSubmitting}>
                         {isSubmitting ? 'جاري إرسال الطلب...' : 'تأكيد الطلب'}
                     </Button>
                 </DialogFooter>

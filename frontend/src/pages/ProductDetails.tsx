@@ -10,6 +10,8 @@ import { Product, useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import ProductCard from '@/components/ProductCard';
 import Header from "@/components/Header.tsx";
+import {FaFacebook, FaTiktok, FaWhatsapp} from "react-icons/fa";
+import CheckoutModal from "@/components/ui/checkoutModal.tsx";
 
 // Sample products data - in a real app, this would come from an API
 
@@ -19,6 +21,7 @@ const ProductDetails = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isBuyNowOpen, setBuyNowOpen] = useState(false);
   const [error, setError] = useState();
   const [loading,setLoading] = useState(false)
   useEffect(() => {
@@ -41,6 +44,7 @@ const ProductDetails = () => {
   }, [id]);
   useEffect(() => {
     const fetchRelatedProducts = async (categoryId: string, excludeId: string) => {
+      setLoading(true);
       try {
         const res = await fetch(`http://localhost:4040/api/product/related/${categoryId}?excludeId=${excludeId}`);
         if (!res.ok) throw new Error("فشل في جلب المنتجات ذات الصلة");
@@ -49,6 +53,8 @@ const ProductDetails = () => {
         setRelatedProducts(data);
       } catch (err: any) {
         console.error("Error loading related products:", err.message);
+      } finally {
+        setLoading(false);
       }
     };
     if (product && product.categoryId?._id) {
@@ -74,6 +80,19 @@ const ProductDetails = () => {
     });
   };
 
+  if (loading) {
+    return (
+        <div className="min-h-screen bg-gray-50 p-8">
+          <div className="max-w-4xl mx-auto animate-pulse">
+            <div className="h-64 bg-gray-200 mb-6 rounded"></div>
+            <div className="h-6 bg-gray-300 w-3/4 mb-4 rounded"></div>
+            <div className="h-6 bg-gray-300 w-1/2 mb-4 rounded"></div>
+            <div className="h-32 bg-gray-200 mb-6 rounded"></div>
+            <div className="h-10 bg-heroes-red w-1/4 rounded"></div>
+          </div>
+        </div>
+    );
+  }
   if (!product) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -209,14 +228,34 @@ const ProductDetails = () => {
                   </a>
                 </div>
             )}
-            <Button 
-              onClick={handleAddToCart}
-              className="w-full bg-heroes-red hover:bg-heroes-red/90 text-lg py-6"
-              disabled={product.isSoldOut}
+            <Button
+                onClick={() => {
+                  if (product?.categoryId?.name !== 'إشتراكات') {
+                    handleAddToCart();
+                  } else {
+                    const message = `مرحبًا، أود الاستفسار عن المنتج التالي:\n\nالمنتج: ${product?.productName}`;
+                    const encodedMessage = encodeURIComponent(message);
+                    const phoneNumber = "972592572788"; // Remove the + and use international format
+                    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+                    window.open(whatsappUrl, '_blank');
+                  }
+                }}
+                className="w-full bg-heroes-red hover:bg-heroes-red/90 text-lg py-6"
+                disabled={product.isSoldOut}
             >
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              {product.isSoldOut ? 'نفدت الكمية' : 'إضافة للسلة'}
+              {
+                product?.categoryId?.name !== 'إشتراكات' ? (
+                    <>
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      {product.isSoldOut ? 'نفدت الكمية' : 'إضافة للسلة'}
+                    </>
+
+                ) : (
+                    'اطلبه الأن'
+                )
+              }
             </Button>
+
           </div>
         </div>
 
@@ -258,19 +297,44 @@ const ProductDetails = () => {
             <div>
               <h4 className="font-semibold mb-4">فئات المنتجات</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">أجهزة الاستقبال</a></li>
-                <li><a href="#" className="hover:text-white">كاميرات المراقبة</a></li>
-                <li><a href="#" className="hover:text-white">إكسسوارات الجوال</a></li>
-                <li><a href="#" className="hover:text-white">اشتراكات الإنترنت</a></li>
+                <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">كاميرات المراقبة</Link></li>
+                <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">إكسسوارات الجوال</Link></li>
+                <li><Link to="/products?category=686922259ee88f36ff9c18d0" className="hover:text-white">اشتراكات الإنترنت</Link></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-semibold mb-4">تواصل معنا</h4>
               <div className="space-y-2 text-gray-400">
-                <p>📞 +966 50 123 4567</p>
-                <p>✉️ info@heroes.com</p>
-                <p>📍 الرياض، المملكة العربية السعودية</p>
+                <p>📞 972-59-257-2788+</p>
+                <p>✉️ heroestechnologecompany@gmail.com</p>
+                <p>📍 جنين، شارع حيفا</p>
+              </div>
+              <div className="flex gap-4 mt-4">
+                <a
+                    href="https://api.whatsapp.com/message/BL3LV2SY7XJGN1?autoload=1&app_absent=0"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-green-400 transition"
+                >
+                  <FaWhatsapp size={20} />
+                </a>
+                <a
+                    href="https://www.tiktok.com/@heroes_technology8?_t=ZS-8xZieOQIXlH&_r=1"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-pink-500 transition"
+                >
+                  <FaTiktok size={20} />
+                </a>
+                <a
+                    href="https://www.facebook.com/profile.php?id=61564057239223&mibextid=wwXIfr&rdid=pTY19CK9ukx6jVGS&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F19KXnysAGK%2F%3Fmibextid%3DwwXIfr#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-500 transition"
+                >
+                  <FaFacebook size={20} />
+                </a>
               </div>
             </div>
           </div>
@@ -280,7 +344,6 @@ const ProductDetails = () => {
           </div>
         </div>
       </footer>
-
     </div>
   );
 };

@@ -43,7 +43,7 @@ const AdminDashboard = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [activeTab,setActiveTab] = useState('products')
   const [orders, setOrders] = useState<Order[]>([]);
-
+  const token = localStorage.getItem('adminToken');
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('adminLoggedIn');
     if (!isLoggedIn) {
@@ -113,6 +113,7 @@ const AdminDashboard = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(product),
       });
@@ -145,6 +146,7 @@ const AdminDashboard = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(product),
       });
@@ -177,6 +179,10 @@ const AdminDashboard = () => {
     try {
       const res = await fetch(`http://localhost:4040/api/product/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`
+        },
       });
 
       if (!res.ok) {
@@ -212,6 +218,7 @@ const AdminDashboard = () => {
         method,
         headers: {
           'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(category),
       });
@@ -242,6 +249,10 @@ const AdminDashboard = () => {
     try {
       const res = await fetch(`http://localhost:4040/api/category/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`
+        },
       });
 
       if (!res.ok) throw new Error('فشل حذف الفئة');
@@ -275,8 +286,8 @@ const AdminDashboard = () => {
             <h1 className="text-2xl font-bold text-heroes-red">
               لوحة إدارة Heroes
             </h1>
-            
-            <div className="flex items-center gap-4">
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               <Button variant="outline" onClick={() => navigate('/admin/profile')}>
                 <User className="h-4 w-4 mr-2" />
                 الملف الشخصي
@@ -305,7 +316,7 @@ const AdminDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>قائمة المنتجات ({filteredProducts.length})</CardTitle>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                     <Button className="bg-heroes-red hover:bg-heroes-red/90" onClick={() => setShowProductForm(true)}>
                       إضافة منتج جديد
                     </Button>
