@@ -26,7 +26,7 @@ const AdminProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch('http://localhost:4040/api/auth/profile', {
+        const res = await fetch('https://heroess.top/api/auth/profile', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
           },
@@ -53,7 +53,7 @@ const AdminProfile = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch('http://localhost:4040/api/auth/profile', {
+      const res = await fetch('https://heroess.top/api/auth/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ const AdminProfile = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch('http://localhost:4040/api/auth/change-password', {
+      const res = await fetch('https://heroess.top/api/auth/change-password', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

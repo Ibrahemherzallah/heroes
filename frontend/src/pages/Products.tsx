@@ -30,8 +30,8 @@ const Products = () => {
       try {
         const res = await fetch(
             categoryId
-                ? `http://localhost:4040/api/product?category=${categoryId}`
-                : `http://localhost:4040/api/product`
+                ? `https://heroess.top/api/product?category=${categoryId}`
+                : `https://heroess.top/api/product`
         );
         if (!res.ok) throw new Error('فشل تحميل المنتجات');
 

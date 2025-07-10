@@ -13,7 +13,7 @@ const Categories = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const res = await fetch('http://localhost:4040/api/category');
+        const res = await fetch('https://heroess.top/api/category');
         if (!res.ok) throw new Error('فشل تحميل المنتجات');
 
         const data = await res.json();

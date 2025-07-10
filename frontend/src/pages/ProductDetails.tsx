@@ -28,7 +28,7 @@ const ProductDetails = () => {
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:4040/api/product/${id}`);
+        const res = await fetch(`https://heroess.top/api/product/${id}`);
         if (!res.ok) throw new Error('فشل تحميل المنتجات');
 
         const data = await res.json();
@@ -46,7 +46,7 @@ const ProductDetails = () => {
     const fetchRelatedProducts = async (categoryId: string, excludeId: string) => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:4040/api/product/related/${categoryId}?excludeId=${excludeId}`);
+        const res = await fetch(`https://heroess.top/api/product/related/${categoryId}?excludeId=${excludeId}`);
         if (!res.ok) throw new Error("فشل في جلب المنتجات ذات الصلة");
 
         const data = await res.json();

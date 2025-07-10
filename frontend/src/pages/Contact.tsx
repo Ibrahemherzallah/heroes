@@ -37,7 +37,7 @@ const Contact = () => {
 
     setIsSending(true);
     try {
-      const res = await fetch('http://localhost:4040/api/order/send-contact-us', {
+      const res = await fetch('https://heroess.top/api/order/send-contact-us', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
