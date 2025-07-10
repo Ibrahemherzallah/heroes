@@ -57,7 +57,9 @@ export default {
 					red: '#E63946',
 					blue: '#A8DADC',
 					'blue-light': '#F1FAEE'
-				}
+				},
+				'heroes-gradient-start': '#A3D6D3',
+				'heroes-gradient-end': '#364033',
 			},
 			fontFamily: {
 				'cairo': ['Cairo', 'sans-serif'],

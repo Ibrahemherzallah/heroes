@@ -8,9 +8,10 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const user = await User.findOne({ name: email }); // or { email }, based on your schema
+        const user = await User.findOne({ email });
+        console.log("user is : ", user);
         if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.status(401).json({ error: 'خطأ في كلمة المرور او الإيميل المدخل' });
         }
 
         const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
@@ -33,92 +34,90 @@ export const login = async (req, res) => {
 };
 
 export const signup = async (req, res) => {
-    const { name, password } = req.body;
+    const { email, userName, password } = req.body;
 
     try {
         // Check if user already exists
-        const existingUser = await User.findOne({ name });
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ error: 'Username is already taken' });
+            return res.status(400).json({ error: 'Email already in use' });
         }
 
-        // Create and save new user
-        const newUser = new User({ name, password });
+        // Create new user (password is hashed in pre-save hook)
+        const newUser = new User({ email, userName, password });
         await newUser.save();
 
-        // Generate JWT token
+        // Generate token
         const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, {
             expiresIn: '7d',
         });
 
         res.status(201).json({
+            message: 'User created successfully',
             token,
             user: {
-                name: newUser.name,
+                id: newUser._id,
+                email: newUser.email,
+                userName: newUser.userName,
             },
         });
-    } catch (err) {
-        console.error('Signup error:', err);
+
+    } catch (error) {
+        console.error('Signup error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-export const updateUser = async (req, res) => {
+export const getProfile = async (req, res) => {
     try {
-        const { name } = req.body;
+        const user = await User.findById(req.userId).select('userName email');
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-        // Find the current user
-        const user = await User.findById(req.userId).select("name email");
-
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        // Check if the new name is the same as the current one
-        if (user.name === name) {
-            return res.status(400).json({ error: "New name must be different from the current name." });
-        }
-
-        // Update the name
-        user.name = name;
-        await user.save();
-
-        res.json({ message: "Updated successfully", user });
+        res.status(200).json(user);
     } catch (err) {
-        res.status(500).json({ error: "فشل التعديل" });
+        console.error('Get profile error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+export const updateProfile = async (req, res) => {
+    const { userName, email } = req.body;
+
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            req.userId,
+            { userName, email },
+            { new: true, runValidators: true }
+        ).select('userName email');
+
+        res.status(200).json({ message: 'Profile updated', user: updatedUser });
+    } catch (err) {
+        console.error('Update profile error:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
 export const changePassword = async (req, res) => {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
     try {
-        const { currentPassword, newPassword, confirmPassword } = req.body;
-        console.log("currentPassword : " , currentPassword);
-        console.log("newPassword : " , newPassword);
-        console.log("confirmPassword : " , confirmPassword);
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) return res.status(400).json({ error: 'كلمة المرور الحالية غير صحيحة' });
 
         if (newPassword !== confirmPassword) {
-            return res.status(400).json({ error: "New passwords do not match." });
+            return res.status(400).json({ error: 'كلمات المرور الجديدة غير متطابقة' });
         }
 
-        const user = await User.findById(req.userId);
-
-        if (!user) {
-            return res.status(404).json({ error: "User not found." });
-        }
-        console.log("user is " , user)
-        // Check current password
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ error: "كلمة المرور الحالية غير صحيحة." });
-        }
-
-        // Hash new password and update
         user.password = newPassword;
         await user.save();
 
-        res.json({ message: "تم تغيير كلمة المرور بنجاح" });
+        res.status(200).json({ message: 'تم تغيير كلمة المرور بنجاح' });
+
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "فشل تغيير كلمة المرور" });
+        console.error('Change password error:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };

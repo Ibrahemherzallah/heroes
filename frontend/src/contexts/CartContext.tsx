@@ -1,18 +1,20 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, {createContext, useContext, useState, ReactNode, useEffect} from 'react';
 
-export interface Product {
+interface Product {
   id: string;
-  name: string;
-  price: number;
-  salePrice?: number;
-  isOnSale?: boolean;
+  productName: string;
+  customerPrice: number;
+  salePrice: number;
+  isOnSale: boolean;
   description: string;
-  image: string;
-  images?: string[];
-  category: string;
-  isSoldOut?: boolean;
+  image: string[];
+  categoryId: string;
+  isSoldOut: boolean;
+  url?: string;
+  properties?: string[]; // or change to an array of objects if needed
 }
+
 
 export interface CartItem extends Product {
   quantity: number;
@@ -31,16 +33,23 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    const stored = localStorage.getItem("cartItems");
+    return stored ? JSON.parse(stored) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("cartItems", JSON.stringify(cartItems));
+  }, [cartItems]);
 
   const addToCart = (product: Product) => {
     setCartItems(prev => {
       const existingItem = prev.find(item => item.id === product.id);
       if (existingItem) {
         return prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+            item.id === product.id
+                ? { ...item, quantity: item.quantity + 1 }
+                : item
         );
       }
       return [...prev, { ...product, quantity: 1 }];
@@ -57,9 +66,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
     setCartItems(prev =>
-      prev.map(item =>
-        item.id === productId ? { ...item, quantity } : item
-      )
+        prev.map(item =>
+            item.id === productId ? { ...item, quantity } : item
+        )
     );
   };
 
@@ -69,7 +78,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => {
-      const price = item.isOnSale && item.salePrice ? item.salePrice : item.price;
+      const price = item.isOnSale && item.salePrice ? item.salePrice : item.customerPrice;
       return total + (price * item.quantity);
     }, 0);
   };
@@ -79,17 +88,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <CartContext.Provider value={{
-      cartItems,
-      addToCart,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-      getTotalPrice,
-      getTotalItems
-    }}>
-      {children}
-    </CartContext.Provider>
+      <CartContext.Provider value={{
+        cartItems,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        getTotalPrice,
+        getTotalItems
+      }}>
+        {children}
+      </CartContext.Provider>
   );
 };
 

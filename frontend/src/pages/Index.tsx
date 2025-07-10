@@ -1,79 +1,40 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import ProductGrid from '@/components/ProductGrid';
 import { Product } from '@/contexts/CartContext';
+import { FaFacebook, FaTiktok, FaWhatsapp } from 'react-icons/fa';
 
 const Index = () => {
-  // Sample products data - in a real app, this would come from an API
-  const [products] = useState<Product[]>([
-    {
-      id: '1',
-      name: 'رسيفر HD عالي الدقة',
-      price: 299,
-      salePrice: 249,
-      isOnSale: true,
-      description: 'رسيفر عالي الجودة يدعم القنوات المشفرة وغير المشفرة',
-      image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=400&fit=crop',
-      category: 'receiver',
-      isSoldOut: false
-    },
-    {
-      id: '2',
-      name: 'كاميرا مراقبة ذكية 4K',
-      price: 799,
-      description: 'كاميرا مراقبة بدقة 4K مع الرؤية الليلية والاتصال اللاسلكي',
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop',
-      category: 'cameras',
-      isSoldOut: false
-    },
-    {
-      id: '3',
-      name: 'شاحن لاسلكي للجوال',
-      price: 149,
-      description: 'شاحن لاسلكي سريع متوافق مع جميع الهواتف الذكية',
-      image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=400&fit=crop',
-      category: 'mobile-accessories',
-      isSoldOut: true
-    },
-    {
-      id: '4',
-      name: 'ماوس كمبيوتر لاسلكي',
-      price: 199,
-      description: 'ماوس كمبيوتر لاسلكي عالي الدقة ومريح للاستخدام',
-      image: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400&h=400&fit=crop',
-      category: 'computer-accessories',
-      isSoldOut: false
-    },
-    {
-      id: '5',
-      name: 'باقة إنترنت عالي السرعة',
-      price: 199,
-      description: 'اشتراك شهري للإنترنت عالي السرعة بلا حدود',
-      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=400&fit=crop',
-      category: 'internet-subscription',
-      isSoldOut: true
-    },
-    {
-      id: '6',
-      name: 'نظام أمان ذكي',
-      price: 1299,
-      salePrice: 999,
-      isOnSale: true,
-      description: 'نظام أمان ذكي متكامل مع أجهزة استشعار وكاميرات',
-      image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop',
-      category: 'electronic-items',
-      isSoldOut: false
-    }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('http://localhost:4040/api/product/featured');
+        if (!res.ok) throw new Error('فشل تحميل المنتجات');
+
+        const data = await res.json();
+        setProducts(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || 'حدث خطأ غير متوقع');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-heroes-blue to-heroes-blue-light py-16">
+      <section className="bg-gradient-to-r from-heroes-gradient-start to-heroes-gradient-end py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
             مرحباً بك في Heroes
@@ -101,17 +62,17 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">فئات المنتجات</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Link to="/products?category=receiver">
+            <Link to="/products?category=686922259ee88f36ff9c18d0">
               <div className="text-center p-8 rounded-xl bg-heroes-blue-light hover:shadow-lg transition-shadow cursor-pointer">
                 <div className="w-16 h-16 bg-heroes-blue rounded-full mx-auto mb-4 flex items-center justify-center">
                   <span className="text-2xl">📡</span>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">أجهزة الاستقبال</h3>
-                <p className="text-gray-600">رسيفرات عالية الجودة وأنظمة ذكية</p>
+                <h3 className="text-xl font-semibold mb-2">إشتراكات</h3>
+                <p className="text-gray-600">أفضل العروض والاشتراكات الرقمية للبرامج الشهيرة</p>
               </div>
             </Link>
             
-            <Link to="/products?category=cameras">
+            <Link to="/products?category=686507b15aec7492cb382eb2">
               <div className="text-center p-8 rounded-xl bg-heroes-blue-light hover:shadow-lg transition-shadow cursor-pointer">
                 <div className="w-16 h-16 bg-heroes-blue rounded-full mx-auto mb-4 flex items-center justify-center">
                   <span className="text-2xl">📷</span>
@@ -121,10 +82,10 @@ const Index = () => {
               </div>
             </Link>
             
-            <Link to="/products?category=mobile-accessories">
+            <Link to="/products?category=68643f49332437732c8103aa">
               <div className="text-center p-8 rounded-xl bg-heroes-blue-light hover:shadow-lg transition-shadow cursor-pointer">
                 <div className="w-16 h-16 bg-heroes-blue rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-2xl">🔧</span>
+                  <span className="text-2xl">💻</span>
                 </div>
                 <h3 className="text-xl font-semibold mb-2">الإكسسوارات</h3>
                 <p className="text-gray-600">إكسسوارات الجوال والكمبيوتر</p>
@@ -132,12 +93,26 @@ const Index = () => {
             </Link>
           </div>
         </div>
+        <div className="mt-8 text-center">
+          <Link
+              to="/categories"
+              className="text-gray-700 hover:text-heroes-red transition-colors text-lg"
+          >
+            عرض الكل ←
+          </Link>
+        </div>
       </section>
 
       {/* Products Section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          <ProductGrid products={products} title="المنتجات المميزة" />
+          {loading ? (
+              <p className="text-center text-lg font-semibold text-gray-500">جاري تحميل المنتجات...</p>
+          ) : error ? (
+              <p className="text-center text-red-500 font-semibold">{error}</p>
+          ) : (
+              <ProductGrid products={products} title="المنتجات المميزة" />
+          )}
         </div>
       </section>
 
@@ -165,19 +140,44 @@ const Index = () => {
             <div>
               <h4 className="font-semibold mb-4">فئات المنتجات</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">أجهزة الاستقبال</a></li>
-                <li><a href="#" className="hover:text-white">كاميرات المراقبة</a></li>
-                <li><a href="#" className="hover:text-white">إكسسوارات الجوال</a></li>
-                <li><a href="#" className="hover:text-white">اشتراكات الإنترنت</a></li>
+                <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">كاميرات المراقبة</Link></li>
+                <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">إكسسوارات الكمبيوتر</Link></li>
+                <li><Link to="/products?category=686922259ee88f36ff9c18d0" className="hover:text-white">اشتراكات الإنترنت</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">تواصل معنا</h4>
               <div className="space-y-2 text-gray-400">
-                <p>📞 +966 50 123 4567</p>
-                <p>✉️ info@heroes.com</p>
-                <p>📍 الرياض، المملكة العربية السعودية</p>
+                <p>📞 972-59-257-2788+</p>
+                <p>✉️ heroestechnologecompany@gmail.com</p>
+                <p>📍 جنين، شارع حيفا</p>
+              </div>
+              <div className="flex gap-4 mt-4">
+                <a
+                    href="https://api.whatsapp.com/message/BL3LV2SY7XJGN1?autoload=1&app_absent=0"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-green-400 transition"
+                >
+                  <FaWhatsapp size={20} />
+                </a>
+                <a
+                    href="https://www.tiktok.com/@heroes_technology8?_t=ZS-8xZieOQIXlH&_r=1"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-pink-500 transition"
+                >
+                  <FaTiktok size={20} />
+                </a>
+                <a
+                    href="https://www.facebook.com/profile.php?id=61564057239223&mibextid=wwXIfr&rdid=pTY19CK9ukx6jVGS&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F19KXnysAGK%2F%3Fmibextid%3DwwXIfr#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-500 transition"
+                >
+                  <FaFacebook size={20} />
+                </a>
               </div>
             </div>
           </div>
