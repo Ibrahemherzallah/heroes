@@ -167,14 +167,14 @@ const ProductDetails = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 {product.productName}
               </h1>
-              
+
               <div className="flex items-center gap-2 mb-4">
                 {product.isOnSale && (
                   <Badge className="bg-heroes-red">
                     تخفيض
                   </Badge>
                 )}
-                
+
                 {product.isSoldOut && (
                   <Badge className="bg-gray-500">
                     نفدت الكمية
@@ -186,7 +186,7 @@ const ProductDetails = () => {
                 <span className="text-3xl font-bold text-heroes-red">
                   {displayPrice.toFixed(2)}₪
                 </span>
-                
+
                 {product.isOnSale && product.salePrice && (
                   <span className="text-xl text-gray-500 line-through">
                     {product.customerPrice.toFixed(2)}₪
@@ -298,7 +298,7 @@ const ProductDetails = () => {
               <h4 className="font-semibold mb-4">فئات المنتجات</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">كاميرات المراقبة</Link></li>
-                <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">إكسسوارات الجوال</Link></li>
+                <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">إكسسوارات الكمبيوتر</Link></li>
                 <li><Link to="/products?category=686922259ee88f36ff9c18d0" className="hover:text-white">اشتراكات الإنترنت</Link></li>
               </ul>
             </div>

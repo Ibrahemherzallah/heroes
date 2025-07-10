@@ -8,6 +8,8 @@ import { Product } from '@/contexts/CartContext';
 import { Upload, X } from 'lucide-react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/firebase';
+import imageCompression from 'browser-image-compression';
+
 interface ProductAddFormProps {
   onSave: (product: Omit<Product, 'id'> & { id?: string }) => void;
   onCancel: () => void;
@@ -44,8 +46,15 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
     }
 
     const uploadPromises = files.map(async (file) => {
-      const storageRef = ref(storage, `products/${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      // 🔧 Compress image
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 1,           // target size under 1MB
+        maxWidthOrHeight: 1024, // resize width/height
+        useWebWorker: true,
+      });
+
+      const storageRef = ref(storage, `products/${compressedFile.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, compressedFile);
 
       return new Promise<string>((resolve, reject) => {
         uploadTask.on(
@@ -65,7 +74,7 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
       setImagePreviews((prev) => [...prev, ...urls]);
       setFormData((prev) => ({
         ...prev,
-        image: [...prev.image, ...urls], // array of URLs
+        image: [...prev.image, ...urls],
       }));
     } catch (error) {
       toast({
