@@ -53,7 +53,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch('http://localhost:4040/api/category');
+        const res = await fetch('https://heroess.top/api/category');
         if (!res.ok) throw new Error('فشل تحميل الفئات');
 
         const data = await res.json();
@@ -68,7 +68,7 @@ const AdminDashboard = () => {
     if(activeTab === 'products') {
       const fetchProducts = async () => {
         try {
-          const res = await fetch('http://localhost:4040/api/product');
+          const res = await fetch('https://heroess.top/api/product');
           if (!res.ok) throw new Error('فشل تحميل الفئات');
 
           const data = await res.json();
@@ -85,7 +85,7 @@ const AdminDashboard = () => {
     if(activeTab === 'orders') {
       const fetchOrders = async () => {
         try {
-          const res = await fetch(`http://localhost:4040/api/order`);
+          const res = await fetch(`https://heroess.top/api/order`);
           const data = await res.json();
           setOrders(data);
         } catch (error) {
@@ -109,7 +109,7 @@ const AdminDashboard = () => {
 
   const handleSaveProduct = async (product: Product) => {
     try {
-      const res = await fetch('http://localhost:4040/api/product', {
+      const res = await fetch('https://heroess.top/api/product', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ const AdminDashboard = () => {
   const handleEditProduct = async (product: Product) => {
     console.log("PRODUCT SI : " , product._id)
     try {
-      const res = await fetch(`http://localhost:4040/api/product/${product._id}`, {
+      const res = await fetch(`https://heroess.top/api/product/${product._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const AdminDashboard = () => {
 
   const deleteProduct = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:4040/api/product/${id}`, {
+      const res = await fetch(`https://heroess.top/api/product/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -211,8 +211,8 @@ const AdminDashboard = () => {
     try {
       const method = category.id ? 'PUT' : 'POST';
       const url = category.id
-          ? `http://localhost:4040/api/category/${category.id}`
-          : `http://localhost:4040/api/category`;
+          ? `https://heroess.top/api/category/${category.id}`
+          : `https://heroess.top/api/category`;
 
       const res = await fetch(url, {
         method,
@@ -247,7 +247,7 @@ const AdminDashboard = () => {
     if (!confirm('هل أنت متأكد من حذف هذه الفئة؟')) return;
 
     try {
-      const res = await fetch(`http://localhost:4040/api/category/${id}`, {
+      const res = await fetch(`https://heroess.top/api/category/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
