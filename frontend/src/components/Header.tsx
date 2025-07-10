@@ -1,10 +1,10 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
+import logo from '../../public/heroes-logo.png';
 import CartDrawer from './CartDrawer';
 
 const Header = () => {
@@ -17,10 +17,10 @@ const Header = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2 space-x-reverse">
-              <div className="w-10 h-10 bg-heroes-red rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">H</span>
-              </div>
-              <span className="text-2xl font-bold text-heroes-red">Heroes</span>
+              {/*<div className="w-10 h-10 bg-heroes-red rounded-lg flex items-center justify-center">*/}
+                  <img className="w-14 h-10 rounded-lg flex items-center justify-center"   src={logo} alt={'heroes-logo'} />
+              {/*</div>*/}
+              <span className="text-2xl font-bold text-heroes-red">Heroes Technology</span>
             </Link>
             
             <nav className="hidden md:flex items-center space-x-8 space-x-reverse">

@@ -61,8 +61,9 @@ export const getProducts = async (req, res) => {
         const filter = category ? { categoryId: category } : {};
         console.log('filter:', filter);
 
-        const products = await Product.find(filter).populate('categoryId');
-
+        const products = await Product.find(filter)
+            .populate('categoryId')
+            .sort({ createdAt: -1 }); // 🆕 Order by newest first
         res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching products:', error);

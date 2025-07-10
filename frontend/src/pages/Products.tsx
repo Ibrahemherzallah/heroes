@@ -48,17 +48,7 @@ const Products = () => {
     fetchProducts();
   }, [categoryId]);
   console.log("The products si : ", products)
-  const getCategoryName = (categoryId: string) => {
-    const categoryNames: { [key: string]: string } = {
-      'receiver': 'أجهزة الاستقبال',
-      'cameras': 'كاميرات المراقبة',
-      'mobile-accessories': 'إكسسوارات الجوال',
-      'computer-accessories': 'إكسسوارات الكمبيوتر',
-      'internet-subscription': 'اشتراكات الإنترنت',
-      'electronic-items': 'الأجهزة الإلكترونية'
-    };
-    return categoryNames[categoryId] || 'المنتجات';
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
