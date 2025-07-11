@@ -6,20 +6,28 @@ import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import logo from '../../public/heroes-logo.png';
 import CartDrawer from './CartDrawer';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const { getTotalItems } = useCart();
   const [isCartOpen, setIsCartOpen] = useState(false);
-
+  const token = localStorage.getItem('adminToken');
+  const navigate = useNavigate();
+  const handleClick = () => {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/admin/login');
+    }
+  };
   return (
     <>
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2 space-x-reverse">
-              {/*<div className="w-10 h-10 bg-heroes-red rounded-lg flex items-center justify-center">*/}
                   <img className="w-14 h-10 rounded-lg flex items-center justify-center"   src={logo} alt={'heroes-logo'} />
-              {/*</div>*/}
               <span className="text-2xl font-bold text-heroes-red">Heroes Technology</span>
             </Link>
             
@@ -54,12 +62,10 @@ const Header = () => {
                   </Badge>
                 )}
               </Button>
-              
-              <Link to="/admin/login">
-                <Button variant="outline" size="sm">
-                  لوحة الإدارة
-                </Button>
-              </Link>
+
+              <Button variant="outline" size="sm" onClick={handleClick}>
+                لوحة الإدارة
+              </Button>
             </div>
           </div>
         </div>
