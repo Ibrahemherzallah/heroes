@@ -13,8 +13,10 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
-    if (token) {
-      navigate('/admin/dashboard'); // Redirect if token exists
+    const isLoggedIn = localStorage.getItem('adminLoggedIn');
+
+    if (token && isLoggedIn === 'true') {
+      navigate('/admin/dashboard');
     }
   }, [navigate]);
   const handleLogin = async (e: React.FormEvent) => {
@@ -32,11 +34,13 @@ const AdminLogin = () => {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+      if (!response.ok || !data.user?.isAdmin) {
+        throw new Error('أنت لا تملك صلاحية الدخول');
       }
 
-      localStorage.setItem('adminToken', data.token); // Store the JWT token
+      localStorage.setItem('adminToken', data.token);
+      localStorage.setItem('adminLoggedIn', 'true');
+
       toast({
         title: "تم تسجيل الدخول",
         description: "مرحباً بك في لوحة الإدارة",

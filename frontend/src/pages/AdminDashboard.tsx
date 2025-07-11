@@ -45,11 +45,14 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const token = localStorage.getItem('adminToken');
   useEffect(() => {
+    const token = localStorage.getItem('adminToken');
     const isLoggedIn = localStorage.getItem('adminLoggedIn');
-    if (!isLoggedIn) {
+
+    if (!token || isLoggedIn !== 'true') {
       navigate('/admin/login');
     }
   }, [navigate]);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {

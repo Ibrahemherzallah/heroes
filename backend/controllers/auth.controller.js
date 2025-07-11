@@ -24,6 +24,7 @@ export const login = async (req, res) => {
             token,
             user: {
                 name: user.name,
+                isAdmin: user.name !== ''
             },
         });
 
