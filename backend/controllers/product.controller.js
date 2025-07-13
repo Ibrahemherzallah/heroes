@@ -138,6 +138,8 @@ export const updateProduct = async (req, res) => {
             isOnSale,
             isSoldOut,
             description,
+            url,
+            properties
         } = req.body;
 
         // Validate required fields
@@ -158,6 +160,8 @@ export const updateProduct = async (req, res) => {
                 isOnSale,
                 isSoldOut,
                 description,
+                url,
+                properties
             },
             { new: true }
         );

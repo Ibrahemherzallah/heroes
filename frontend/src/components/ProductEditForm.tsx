@@ -29,9 +29,13 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, cate
     images: product.image || [],
     categoryId: product.categoryId,
     isOnSale: product.isOnSale || false,
-    isSoldOut: product.isSoldOut || false
+    isSoldOut: product.isSoldOut || false,
+    url: product.url || '',
+    properties: product.properties || []
+
   });
   const [imagePreviews, setImagePreviews] = useState<string[]>(product.image || []);
+  const [propertyInput, setPropertyInput] = useState<string>('');
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -77,7 +81,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, cate
       });
     }
   };
-
   const removeImage = (index: number) => {
     setImagePreviews(prev => {
       const newPreviews = prev.filter((_, i) => i !== index);
@@ -89,6 +92,26 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, cate
       return newPreviews;
     });
   };
+
+
+  const handleAddProperty = () => {
+    if (propertyInput.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        properties: [...(prev.properties || []), propertyInput.trim()],
+      }));
+      setPropertyInput('');
+    }
+  };
+
+  const handleRemoveProperty = (index: number) => {
+    setFormData(prev => {
+      const updated = [...(prev.properties || [])];
+      updated.splice(index, 1);
+      return { ...prev, properties: updated };
+    });
+  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,6 +197,50 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, cate
             )}
           </div>
         </div>
+
+
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium mb-2">رابط المنتج (اختياري)</label>
+          <Input
+              type="url"
+              value={formData.url}
+              onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+              placeholder="https://example.com"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium mb-2">الخصائص (اختياري)</label>
+          <div className="flex gap-2 mb-2">
+            <Input
+                value={propertyInput}
+                onChange={(e) => setPropertyInput(e.target.value)}
+                placeholder="مثال: لون أحمر، حجم متوسط"
+            />
+            <Button type="button" onClick={handleAddProperty}>
+              إضافة
+            </Button>
+          </div>
+          {formData.properties && formData.properties.length > 0 && (
+              <ul className="space-y-1">
+                {formData.properties.map((prop, index) => (
+                    <li key={index} className="flex items-center justify-between bg-gray-100 p-2 rounded">
+                      <span>{prop}</span>
+                      <Button
+                          type="button" // ✅ This prevents form submission
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveProperty(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                ))}
+              </ul>
+          )}
+        </div>
+
 
         <div className="md:col-span-2">
           <label className="block text-sm font-medium mb-2">الوصف</label>

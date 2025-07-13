@@ -144,7 +144,6 @@ const AdminDashboard = () => {
   };
 
   const handleEditProduct = async (product: Product) => {
-    console.log("PRODUCT SI : " , product._id)
     try {
       const res = await fetch(`https://heroess.top/api/product/${product._id}`, {
         method: 'PUT',
