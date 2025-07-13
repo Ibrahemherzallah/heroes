@@ -185,7 +185,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                         </div>
                     </div>
                 </form>
-
+                <div className="bg-yellow-100 text-yellow-800 p-3 rounded-md text-sm">
+                    ملاحظة: بمجرد الضغط على زر الإرسال سيتم إرسال الطلب إلى شركة التوصيل وسيتم إيصال الطرد في أقرب وقت ممكن.
+                </div>
                 <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
                         إلغاء

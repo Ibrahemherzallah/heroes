@@ -298,7 +298,7 @@ const ProductDetails = () => {
               <h4 className="font-semibold mb-4">فئات المنتجات</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">كاميرات المراقبة</Link></li>
-                <li><Link to="/products?category=68643f49332437732c8103aa" className="hover:text-white">إكسسوارات الكمبيوتر</Link></li>
+                <li><Link to="/products?category=68643f38332437732c8103a8" className="hover:text-white">رسيفرات انترنت</Link></li>
                 <li><Link to="/products?category=686922259ee88f36ff9c18d0" className="hover:text-white">اشتراكات الإنترنت</Link></li>
               </ul>
             </div>
