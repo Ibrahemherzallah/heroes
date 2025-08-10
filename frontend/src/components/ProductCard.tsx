@@ -31,7 +31,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.customerPrice;
-  console.log("NEWWW : " , product)
   return (
     <Card className="group hover:shadow-lg transition-shadow duration-300 animate-fade-in">
       <CardContent className="p-4">
@@ -56,17 +55,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             )}
           </div>
         </Link>
-        
+
         <Link to={`/product/${product.id}`}>
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 hover:text-heroes-red transition-colors cursor-pointer">
+          <h3
+              className="font-semibold text-lg mb-2 hover:text-heroes-red transition-colors cursor-pointer truncate"
+              title={product.productName} // shows full text on hover
+          >
             {product.productName}
           </h3>
         </Link>
-        
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-          {product.description}
+
+        <p
+            className="text-gray-600 text-sm mb-3 truncate min-h-[20px]"
+            title={product.description || ''}
+        >
+          {product.description || '\u00A0'}
         </p>
-        
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xl font-bold text-heroes-red">
             {displayPrice?.toFixed(2)} ₪
@@ -89,7 +93,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 }`}
                         disabled={product.isSoldOut}
                 >
-                  {product.isSoldOut ? 'نفدت الكمية' : 'إضافة للسلة'}
+                  {product.isSoldOut ? 'نفدت الكمية' : '  إضافة للسلة'}
                 </Button>
               </CardFooter>
           )

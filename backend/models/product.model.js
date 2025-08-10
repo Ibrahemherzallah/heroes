@@ -46,7 +46,8 @@ const productSchema = new mongoose.Schema({
     },
     properties: [{
         type: String
-    }]
+    }],
+    sortOrder: { type: Number, default: 0 },
 },{timestamps: true})
 
 
