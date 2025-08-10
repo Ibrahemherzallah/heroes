@@ -12,7 +12,7 @@ import CategoryForm, { Category } from '@/components/CategoryForm';
 import ProductEditForm from '@/components/ProductEditForm';
 import ProductAddForm from '@/components/ProductAddForm';
 import { Search, User } from 'lucide-react';
-
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 interface Order {
   _id: string;
@@ -281,6 +281,22 @@ const AdminDashboard = () => {
     product.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.productName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+
+  const saveNewOrder = async (products) => {
+    await fetch("https://heroess.top/api/product/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(products.map((p, index) => ({
+        id: p.id,
+        sortOrder: index
+      })))
+    });
+  };
+
+
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -314,56 +330,116 @@ const AdminDashboard = () => {
             <TabsTrigger value="orders">الطلبات</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="products"  className="space-y-6">
+          <TabsContent value="products" className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>قائمة المنتجات ({filteredProducts.length})</CardTitle>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                    <Button className="bg-heroes-red hover:bg-heroes-red/90" onClick={() => setShowProductForm(true)}>
+                    <Button
+                        className="bg-heroes-red hover:bg-heroes-red/90"
+                        onClick={() => setShowProductForm(true)}
+                    >
                       إضافة منتج جديد
                     </Button>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input placeholder="البحث برقم أو اسم المنتج..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 w-64"/>
+                      <Input
+                          placeholder="البحث برقم أو اسم المنتج..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10 w-64"
+                      />
                     </div>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {filteredProducts.map((product) => (
-                    <div key={product.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <img src={product.image} alt={product.productName} className="w-16 h-16 object-cover rounded"/>
+                <DragDropContext
+                    onDragEnd={async (result) => {
+                      if (!result.destination) return;
+                      const reordered = Array.from(filteredProducts);
+                      const [moved] = reordered.splice(result.source.index, 1);
+                      reordered.splice(result.destination.index, 0, moved);
+                      setProducts(reordered);
+                      await saveNewOrder(reordered);
+                    }}
+                >
+                  <Droppable droppableId="products">
+                    {(provided) => (
+                        <div
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                            className="space-y-4"
+                        >
+                          {filteredProducts.map((product, index) => (
+                              <Draggable
+                                  key={product.id}
+                                  draggableId={product.id.toString()}
+                                  index={index}
+                              >
+                                {(provided) => (
+                                    <div
+                                        className="flex items-center gap-4 p-4 border rounded-lg bg-white"
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        {...provided.dragHandleProps}
+                                    >
+                                      <img
+                                          src={product.image}
+                                          alt={product.productName}
+                                          className="w-16 h-16 object-cover rounded"
+                                      />
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold">{product.productName}</h3>
-                          <Badge variant="outline" className="text-xs">
-                            {product.id}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">{product.categoryId.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <h3 className="font-semibold">{product.productName}</h3>
+                                          <Badge variant="outline" className="text-xs">
+                                            {product.id}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-sm text-gray-600">{product.categoryId.name}</p>
+                                        <div className="flex items-center gap-2 mt-1">
                           <span className="font-medium text-heroes-red">
-                            {product.isOnSale && product.salePrice ? product.salePrice : product.customerPrice} ₪
+                            {product.isOnSale && product.salePrice
+                                ? product.salePrice
+                                : product.customerPrice}{" "}
+                            ₪
                           </span>
-                          {product.isOnSale && <Badge variant="secondary">تخفيض</Badge>}
-                          {product.isSoldOut && <Badge variant="destructive">نفدت الكمية</Badge>}
-                        </div>
-                      </div>
+                                          {product.isOnSale && (
+                                              <Badge variant="secondary">تخفيض</Badge>
+                                          )}
+                                          {product.isSoldOut && (
+                                              <Badge variant="destructive">نفدت الكمية</Badge>
+                                          )}
+                                        </div>
+                                      </div>
 
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setEditingProduct(product)}>
-                          تعديل
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => deleteProduct(product.id)}>
-                          حذف
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                                      <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setEditingProduct(product)}
+                                        >
+                                          تعديل
+                                        </Button>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => deleteProduct(product.id)}
+                                        >
+                                          حذف
+                                        </Button>
+                                      </div>
+                                    </div>
+                                )}
+                              </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               </CardContent>
             </Card>
           </TabsContent>

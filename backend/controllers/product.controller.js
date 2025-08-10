@@ -1,5 +1,6 @@
 // controllers/productController.js
 import Product from "../models/product.model.js";
+import mongoose from "mongoose";
 // Create Product
 
 export const createProduct = async (req, res) => {
@@ -63,7 +64,7 @@ export const getProducts = async (req, res) => {
 
         const products = await Product.find(filter)
             .populate('categoryId')
-            .sort({ createdAt: -1 }); // 🆕 Order by newest first
+            .sort({ sortOrder: 1, createdAt: -1 });// first by manual order, then by newest
         res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -84,6 +85,22 @@ export const getFeaturedProducts = async (req, res) => {
 };
 
 
+export const reorderProduct = async (req, res) => {
+    try {
+        const updates = req.body; // [{ id, sortOrder }]
+        console.log('updates:', updates);
+        const bulkOps = updates.map((u) => ({
+            updateOne: {
+                filter: { id: u.id },
+                update: { sortOrder: u.sortOrder }
+            }
+        }));
+        await Product.bulkWrite(bulkOps);
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).json({ message: "Error updating order" });
+    }
+}
 // GET /api/product/related/:categoryId?excludeId=productId
 export const getRelatedProducts = async (req, res) => {
     try {
