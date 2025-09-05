@@ -57,7 +57,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 max-h-[500px]">
             {cartItems.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">السلة فارغة</p>

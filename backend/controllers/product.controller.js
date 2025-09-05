@@ -77,7 +77,7 @@ export const getFeaturedProducts = async (req, res) => {
         const products = await Product.find()
             .populate("categoryId", "name")
             .sort({ createdAt: -1 }) // Newest first
-            .limit(8);               // Limit to 8 items
+            .limit(10);               // Limit to 8 items
         res.status(200).json(products);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -120,7 +120,7 @@ export const getRelatedProducts = async (req, res) => {
             query._id = { $ne: excludeId };
         }
 
-        const relatedProducts = await Product.find(query).limit(8); // adjust limit as needed
+        const relatedProducts = await Product.find(query).limit(10); // adjust limit as needed
         res.status(200).json(relatedProducts);
     } catch (err) {
         console.error("Error fetching related products:", err);
