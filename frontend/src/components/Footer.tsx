@@ -24,7 +24,7 @@ const Footer = () => {
               <li><a href="/" className="text-gray-400 hover:text-white transition-colors">الرئيسية</a></li>
               <li><a href="/products" className="text-gray-400 hover:text-white transition-colors">المنتجات</a></li>
               <li><a href="/categories" className="text-gray-400 hover:text-white transition-colors">الفئات</a></li>
-              <li><a href="/contact" className="text-gray-400 hover:text-white transition-colors">اتصل بنا</a></li>
+              <li><a href="/policy" className="text-gray-400 hover:text-white transition-colors">سياسة التوصيل</a></li>
             </ul>
           </div>
           

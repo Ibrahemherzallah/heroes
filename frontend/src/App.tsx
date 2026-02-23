@@ -12,6 +12,7 @@
   import AdminProfile from '@/pages/AdminProfile';
   import NotFound from '@/pages/NotFound';
   import ProtectedRoute from './ProtectedRoute';
+  import ShippingPolicy from "@/pages/ShippingPolicy.tsx";
 
   function App() {
     return (
@@ -24,6 +25,7 @@
               <Route path="/categories" element={<Categories />} />
               <Route path="/product/:id" element={<ProductDetails />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/policy" element={<ShippingPolicy />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={
                 <ProtectedRoute>

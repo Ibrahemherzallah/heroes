@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import ProductGrid from '@/components/ProductGrid';
 import { Product } from '@/contexts/CartContext';
 import { FaFacebook, FaTiktok, FaWhatsapp } from 'react-icons/fa';
+import { FaHeadphones } from "react-icons/fa";
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -111,7 +112,7 @@ const Index = () => {
           ) : error ? (
               <p className="text-center text-red-500 font-semibold">{error}</p>
           ) : (
-              <ProductGrid products={products} title="المنتجات المميزة" />
+              <ProductGrid products={products} title="المنتجات المميزة" showFilter={false} />
           )}
         </div>
       </section>
@@ -133,7 +134,8 @@ const Index = () => {
                 <li><a href="/" className="hover:text-white">الرئيسية</a></li>
                 <li><a href="/products" className="hover:text-white">المنتجات</a></li>
                 <li><a href="/categories" className="hover:text-white">الفئات</a></li>
-                <li><a href="/contact" className="hover:text-white">اتصل بنا</a></li>
+                <li><a href="/policy" className="hover:text-white">سياسة التوصيل</a></li>
+
               </ul>
             </div>
             
