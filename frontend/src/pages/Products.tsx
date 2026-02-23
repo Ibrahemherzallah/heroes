@@ -12,17 +12,12 @@ const Products = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [minPrice, setMinPrice] = useState<number>();
+  const [maxPrice, setMaxPrice] = useState<number>();
   // Read query string
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const categoryId = queryParams.get('category');
-  useEffect(() => {
-    if (categoryFilter) {
-      setFilteredProducts(products.filter(product => product.category === categoryFilter));
-    } else {
-      setFilteredProducts(products);
-    }
-  }, [categoryFilter, products]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -37,6 +32,7 @@ const Products = () => {
 
         const data = await res.json();
         setProducts(data);
+        setFilteredProducts(data);
       } catch (err: any) {
         console.error(err);
         setError(err.message || 'حدث خطأ غير متوقع');
@@ -47,8 +43,13 @@ const Products = () => {
 
     fetchProducts();
   }, [categoryId]);
-  console.log("The products si : ", products)
 
+  useEffect(() => {
+      if(!minPrice && !maxPrice){
+          setFilteredProducts(products);
+      }
+      setFilteredProducts(products.filter(product=> product.salePrice ? product.salePrice >= minPrice && product.salePrice <= maxPrice : product.customerPrice >= minPrice && product.customerPrice <= maxPrice))
+  }, [minPrice,maxPrice]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,7 +65,7 @@ const Products = () => {
           ) : error ? (
               <p className="text-center text-red-500 font-semibold">{error}</p>
           ) : (
-              <ProductGrid products={products} />
+             <ProductGrid products={filteredProducts} setMaxPrice={setMaxPrice} maxPrice={maxPrice} setMinPrice={setMinPrice} minPrice={minPrice} showFilter={true}/>
           )}
         </div>
       </section>

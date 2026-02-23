@@ -134,7 +134,7 @@ const ProductDetails = () => {
               <img
                 src={productImages[selectedImageIndex]}
                 alt={product.productName}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
             
@@ -290,7 +290,7 @@ const ProductDetails = () => {
                 <li><a href="/" className="hover:text-white">الرئيسية</a></li>
                 <li><a href="/products" className="hover:text-white">المنتجات</a></li>
                 <li><a href="/categories" className="hover:text-white">الفئات</a></li>
-                <li><a href="/contact" className="hover:text-white">اتصل بنا</a></li>
+                <li><a href="/policy" className="text-gray-400 hover:text-white transition-colors">سياسة التوصيل</a></li>
               </ul>
             </div>
 
