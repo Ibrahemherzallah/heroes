@@ -22,6 +22,10 @@ const productSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    wholesalerPrice: {
+        type: Number,
+        required: true,
+    },
     salePrice: {
         type: Number,
         required: false,
@@ -47,9 +51,25 @@ const productSchema = new mongoose.Schema({
     properties: [{
         type: String
     }],
-    sortOrder: { type: Number, default: 0 },
-},{timestamps: true})
-
+    sortOrder: {
+        type: Number,
+        default: 0
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false,
+    },
+    type: {
+        type: String,
+        enum: ['inStore', 'sourced'],
+        required: true,
+        default: 'inStore'
+    },
+    stock: {
+        type: Number,
+        required: function() { return this.type === 'inStore'; },
+    }
+}, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);
 

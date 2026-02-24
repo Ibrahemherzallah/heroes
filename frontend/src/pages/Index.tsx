@@ -1,21 +1,42 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useRef} from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import ProductGrid from '@/components/ProductGrid';
 import { Product } from '@/contexts/CartContext';
 import { FaFacebook, FaTiktok, FaWhatsapp } from 'react-icons/fa';
 import { FaHeadphones } from "react-icons/fa";
+import { getCategoryIcon } from "@/utils/categoryIcons.tsx";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const scrollAmount = 340;
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+    const scrollLeft = () => {
+      scrollRef.current?.scrollBy({
+        left: -scrollAmount,
+        behavior: "smooth",
+      });
+    };
+
+    const scrollRight = () => {
+      scrollRef.current?.scrollBy({
+        left: scrollAmount,
+        behavior: "smooth",
+      });
+    };
+
+
+    useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const res = await fetch('https://heroess.top/api/product/featured');
+        const res = await fetch(`${import.meta.env.VITE_ENV}/api/product/featured`);
         if (!res.ok) throw new Error('فشل تحميل المنتجات');
 
         const data = await res.json();
@@ -27,7 +48,23 @@ const Index = () => {
         setLoading(false);
       }
     };
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_ENV}/api/category`);
 
+        if (!res.ok) throw new Error("فشل تحميل الفئات");
+
+        const data = await res.json();
+        setCategories(data);
+      } catch (err: any) {
+        console.error(err);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
     fetchProducts();
   }, []);
   return (
@@ -59,48 +96,50 @@ const Index = () => {
       </section>
 
       {/* Categories Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">فئات المنتجات</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Link to="/products?category=686922259ee88f36ff9c18d0">
-              <div className="text-center p-8 rounded-xl bg-heroes-blue-light hover:shadow-lg transition-shadow cursor-pointer">
-                <div className="w-16 h-16 bg-heroes-blue rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-2xl">📡</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">إشتراكات</h3>
-                <p className="text-gray-600">أفضل العروض والاشتراكات الرقمية للبرامج الشهيرة</p>
-              </div>
-            </Link>
-            
-            <Link to="/products?category=686507b15aec7492cb382eb2">
-              <div className="text-center p-8 rounded-xl bg-heroes-blue-light hover:shadow-lg transition-shadow cursor-pointer">
-                <div className="w-16 h-16 bg-heroes-blue rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-2xl">📷</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">كاميرات المراقبة</h3>
-                <p className="text-gray-600">كاميرات مراقبة ذكية بأحدث التقنيات</p>
-              </div>
-            </Link>
-            
-            <Link to="/products?category=68643f38332437732c8103a8">
-              <div className="text-center p-8 rounded-xl bg-heroes-blue-light hover:shadow-lg transition-shadow cursor-pointer">
-                <div className="w-16 h-16 bg-heroes-blue rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-2xl">📺</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">الرسيفرات</h3>
-                <p className="text-gray-600">جميع انواع الرسيفرات</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-        <div className="mt-8 text-center">
-          <Link
-              to="/categories"
-              className="text-gray-700 hover:text-heroes-red transition-colors text-lg"
+      <section className="py-14 bg-white">
+        <div className="container mx-auto px-4 relative">
+
+          <h2 className="text-3xl font-bold mb-8 text-center">
+            فئات المنتجات
+          </h2>
+
+          {/* Left Button */}
+          <button
+              onClick={scrollLeft}
+              className="absolute left-0 top-[60%] -translate-y-1/2 bg-white shadow-md p-3 rounded-full z-10 hover:bg-gray-100"
           >
-            عرض الكل ←
-          </Link>
+            <ChevronLeft size={22} />
+          </button>
+
+          {/* Right Button */}
+          <button
+              onClick={scrollRight}
+              className="absolute right-0 top-[60%] -translate-y-1/2 bg-white shadow-md p-3 rounded-full z-10 hover:bg-gray-100"
+          >
+            <ChevronRight size={22} />
+          </button>
+
+          {/* Scroll Container */}
+          <div ref={scrollRef} className="flex gap-6 overflow-x-auto scroll-smooth no-scrollbar">
+            {categories.map((category: any) => {
+              const Icon = getCategoryIcon(category.name);
+
+              return (
+                  <Link to={`/products?category=${category._id}`}>
+                    <div key={category._id}
+                         className="flex-shrink-0 w-80 h-52 bg-[#ebf9eb] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ease-in-out hover:bg-[#ebf4eb] hover:shadow-[0_10px_20px_rgba(0,0,0,0.08)] hover:-translate-y-1"                  >
+                      <div className="w-20 h-20 bg-heroes-blue rounded-full flex items-center justify-center text-white mb-4">
+                        <Icon size={34} />
+                      </div>
+
+                      <p className="text-base font-semibold text-center px-2">
+                        {category.name}
+                      </p>
+                    </div>
+                  </Link>
+              );
+            })}
+          </div>
         </div>
       </section>
 

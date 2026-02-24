@@ -25,8 +25,8 @@ const Products = () => {
       try {
         const res = await fetch(
             categoryId
-                ? `https://heroess.top/api/product?category=${categoryId}`
-                : `https://heroess.top/api/product`
+                ? `${import.meta.env.VITE_ENV}/api/product?category=${categoryId}`
+                : `${import.meta.env.VITE_ENV}/api/product`
         );
         if (!res.ok) throw new Error('فشل تحميل المنتجات');
 

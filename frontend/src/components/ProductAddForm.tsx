@@ -33,6 +33,9 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [propertyInput, setPropertyInput] = useState<string>('');
+  const [productType, setProductType] = useState<'inStore' | 'sourced'>('inStore');
+  const [stock, setStock] = useState<number>(0);
+  const [wholesalerPrice, setWholesalerPrice] = useState<number>(0);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -138,6 +141,9 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
       description: formData.description,
       url: formData.url,
       properties: formData.properties,
+      type: productType,
+      stock: productType === 'inStore' ? stock : null,
+      wholesalerPrice,
     };
 
 
@@ -283,7 +289,57 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
           نفدت الكمية
         </label>
       </div>
+      {/* Wholesaler Price */}
+      <div className="md:col-span-2 mb-4">
+        <label className="block text-sm font-medium mb-2">سعر الجملة *</label>
+        <Input
+            type="number"
+            step="0.01"
+            value={wholesalerPrice}
+            onChange={(e) => setWholesalerPrice(parseFloat(e.target.value))}
+            placeholder="0.00"
+            required
+        />
+      </div>
+      {/* Product Type */}
+      <div className="md:col-span-2 mb-4">
+        <label className="block text-sm font-medium mb-2">نوع المنتج *</label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2">
+            <input
+                type="radio"
+                value="inStore"
+                checked={productType === 'inStore'}
+                onChange={() => setProductType('inStore')}
+            />
+            منتج موجود في المتجر
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+                type="radio"
+                value="sourced"
+                checked={productType === 'sourced'}
+                onChange={() => setProductType('sourced')}
+            />
+            منتج من مصدر خارجي
+          </label>
+        </div>
+      </div>
 
+
+      {/* Stock (only if inStore) */}
+      {productType === 'inStore' && (
+          <div className="md:col-span-2 mb-4">
+            <label className="block text-sm font-medium mb-2">عدد المنتجات في المخزن *</label>
+            <Input
+                type="number"
+                value={stock}
+                onChange={(e) => setStock(parseInt(e.target.value))}
+                min={0}
+                required
+            />
+          </div>
+      )}
       <div className="md:col-span-2 flex gap-2">
         <Button type="submit" className="bg-heroes-red hover:bg-heroes-red/90">
           إضافة المنتج

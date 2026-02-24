@@ -9,22 +9,29 @@ export const createProduct = async (req, res) => {
             productName,
             id,
             categoryId,
-            image, // array of image URLs
+            image,
             customerPrice,
+            wholesalerPrice, // new required field
             salePrice,
             isOnSale,
             isSoldOut,
+            stock, // new optional/conditional field
+            type, // "inStore" or "sourced"
             description,
             url,
             properties
         } = req.body;
 
         // Validate required fields
-        if (!productName || !id || !categoryId || !image || image.length === 0 || !customerPrice) {
+        if (!productName || !id || !categoryId || !image || image.length === 0 || !customerPrice || !wholesalerPrice || !type) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Check for duplicate ID (optional)
+        // If product is inStore, stock must be provided
+        if (type === 'inStore' && (stock === undefined || stock < 0)) {
+            return res.status(400).json({ error: 'Stock is required for in-store products' });
+        }
+
         const existing = await Product.findOne({ id });
         if (existing) {
             return res.status(400).json({ error: 'رقم المنتج موجود بالفعل' });
@@ -34,25 +41,26 @@ export const createProduct = async (req, res) => {
             productName,
             id,
             categoryId,
-            image, // array of Firebase image URLs
+            image,
             customerPrice,
+            wholesalerPrice,
             salePrice,
             isOnSale,
-            isSoldOut,
+            isSoldOut: type === 'inStore' ? (stock === 0) : false,
+            stock: type === 'inStore' ? stock : null,
+            type,
             description,
             url,
             properties
         });
 
         await newProduct.save();
-
         res.status(201).json(newProduct);
     } catch (err) {
         console.error('Create product error:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
 // Get All Products
 export const getProducts = async (req, res) => {
     try {
@@ -74,13 +82,10 @@ export const getProducts = async (req, res) => {
 
 export const getFeaturedProducts = async (req, res) => {
     try {
-        const products = await Product.find()
-            .populate("categoryId", "name")
-            .sort({ createdAt: -1 }) // Newest first
-            .limit(10);               // Limit to 8 items
+        const products = await Product.find({ isFeatured: true });
         res.status(200).json(products);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
     }
 };
 
@@ -128,8 +133,28 @@ export const getRelatedProducts = async (req, res) => {
     }
 };
 
+export const toggleFeatured = async (req, res) => {
+    try {
+        const { id } = req.params;
 
+        const product = await Product.findById(id);
+        console.log("product is : ", product)
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
 
+        product.isFeatured = !product.isFeatured;
+        await product.save();
+
+        res.status(200).json({
+            message: "Featured status updated",
+            product,
+        });
+    } catch (error) {
+        console.error("Toggle featured error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
 // Get Single Product by ID
 export const getProductById = async (req, res) => {
     try {
@@ -149,22 +174,27 @@ export const updateProduct = async (req, res) => {
             productName,
             categoryId,
             id,
-            images, // array of image URLs
+            images,
             customerPrice,
+            wholesalerPrice,
             salePrice,
             isOnSale,
             isSoldOut,
+            stock,
+            type,
             description,
             url,
             properties
         } = req.body;
 
-        // Validate required fields
-        if (!productName || !categoryId || !images || images.length === 0 || !customerPrice) {
+        if (!productName || !categoryId || !images || images.length === 0 || !customerPrice || !wholesalerPrice || !type) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
-        console.log("The images is :" , images)
-        // Find and update product
+
+        if (type === 'inStore' && (stock === undefined || stock < 0)) {
+            return res.status(400).json({ error: 'Stock is required for in-store products' });
+        }
+
         const updatedProduct = await Product.findOneAndUpdate(
             { _id: productId },
             {
@@ -173,9 +203,12 @@ export const updateProduct = async (req, res) => {
                 categoryId,
                 image: images,
                 customerPrice,
+                wholesalerPrice,
                 salePrice,
                 isOnSale,
-                isSoldOut,
+                isSoldOut: type === 'inStore' ? (stock === 0) : false,
+                stock: type === 'inStore' ? stock : null,
+                type,
                 description,
                 url,
                 properties
@@ -183,17 +216,13 @@ export const updateProduct = async (req, res) => {
             { new: true }
         );
 
-        if (!updatedProduct) {
-            return res.status(404).json({ error: 'Product not found' });
-        }
-
+        if (!updatedProduct) return res.status(404).json({ error: 'Product not found' });
         res.status(200).json(updatedProduct);
     } catch (err) {
         console.error('Update product error:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
-};// Delete Product
-
+};
 
 export const deleteProduct = async (req, res) => {
     try {
