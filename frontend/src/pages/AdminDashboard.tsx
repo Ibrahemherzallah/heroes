@@ -13,7 +13,7 @@ import ProductEditForm from '@/components/ProductEditForm';
 import ProductAddForm from '@/components/ProductAddForm';
 import { Search, User } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-
+import { Switch } from "@/components/ui/switch";
 interface Order {
   _id: string;
   fullName: string;
@@ -43,20 +43,12 @@ const AdminDashboard = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [activeTab,setActiveTab] = useState('products')
   const [orders, setOrders] = useState<Order[]>([]);
-  const token = localStorage.getItem('adminToken');
-  useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const isLoggedIn = localStorage.getItem('adminLoggedIn');
 
-    if (!token || isLoggedIn !== 'true') {
-      navigate('/admin/login');
-    }
-  }, [navigate]);
-
+  const token = localStorage.getItem('token');
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch('https://heroess.top/api/category');
+        const res = await fetch(`${import.meta.env.VITE_ENV}/api/category`);
         if (!res.ok) throw new Error('فشل تحميل الفئات');
 
         const data = await res.json();
@@ -71,7 +63,7 @@ const AdminDashboard = () => {
     if(activeTab === 'products') {
       const fetchProducts = async () => {
         try {
-          const res = await fetch('https://heroess.top/api/product');
+          const res = await fetch(`${import.meta.env.VITE_ENV}/api/product`);
           if (!res.ok) throw new Error('فشل تحميل الفئات');
 
           const data = await res.json();
@@ -88,7 +80,7 @@ const AdminDashboard = () => {
     if(activeTab === 'orders') {
       const fetchOrders = async () => {
         try {
-          const res = await fetch(`https://heroess.top/api/order`);
+          const res = await fetch(`${import.meta.env.VITE_ENV}/api/order`);
           const data = await res.json();
           setOrders(data);
         } catch (error) {
@@ -102,8 +94,8 @@ const AdminDashboard = () => {
   }, [activeTab]);
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminLoggedIn');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     toast({
       title: "تم تسجيل الخروج",
       description: "تم تسجيل خروجك بنجاح",
@@ -113,7 +105,7 @@ const AdminDashboard = () => {
 
   const handleSaveProduct = async (product: Product) => {
     try {
-      const res = await fetch('https://heroess.top/api/product', {
+      const res = await fetch(`${import.meta.env.VITE_ENV}/api/product`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +137,7 @@ const AdminDashboard = () => {
 
   const handleEditProduct = async (product: Product) => {
     try {
-      const res = await fetch(`https://heroess.top/api/product/${product._id}`, {
+      const res = await fetch(`${import.meta.env.VITE_ENV}/api/product/${product._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -180,7 +172,7 @@ const AdminDashboard = () => {
 
   const deleteProduct = async (id: string) => {
     try {
-      const res = await fetch(`https://heroess.top/api/product/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_ENV}/api/product/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -214,8 +206,8 @@ const AdminDashboard = () => {
     try {
       const method = category.id ? 'PUT' : 'POST';
       const url = category.id
-          ? `https://heroess.top/api/category/${category.id}`
-          : `https://heroess.top/api/category`;
+          ? `${import.meta.env.VITE_ENV}/api/category/${category.id}`
+          : `${import.meta.env.VITE_ENV}/api/category`;
 
       const res = await fetch(url, {
         method,
@@ -250,7 +242,7 @@ const AdminDashboard = () => {
     if (!confirm('هل أنت متأكد من حذف هذه الفئة؟')) return;
 
     try {
-      const res = await fetch(`https://heroess.top/api/category/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_ENV}/api/category/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -282,9 +274,39 @@ const AdminDashboard = () => {
     product.productName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const toggleFeatured = async (productId: string) => {
+    try {
+      // 🔥 Call backend toggle endpoint
+      const response = await fetch(
+          `${import.meta.env.VITE_ENV}/api/product/${productId}/toggle-featured`,
+          {
+            method: "PATCH",
+            headers: {
+              'Content-Type': 'application/json',
+              "Authorization": `Bearer ${token}`
+            }
+          }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update featured status");
+      }
+
+      const data = await response.json();
+
+      // ✅ Update UI using returned product from backend
+      setProducts((prevProducts) =>
+          prevProducts.map((p) =>
+              p._id === productId ? data.product : p
+          )
+      );
+    } catch (error) {
+      console.error("Error updating featured status", error);
+    }
+  };
 
   const saveNewOrder = async (products) => {
-    await fetch("https://heroess.top/api/product/reorder", {
+    await fetch(`${import.meta.env.VITE_ENV}/api/product/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(products.map((p, index) => ({
@@ -336,10 +358,7 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle>قائمة المنتجات ({filteredProducts.length})</CardTitle>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                    <Button
-                        className="bg-heroes-red hover:bg-heroes-red/90"
-                        onClick={() => setShowProductForm(true)}
-                    >
+                    <Button className="bg-heroes-red hover:bg-heroes-red/90" onClick={() => setShowProductForm(true)}>
                       إضافة منتج جديد
                     </Button>
                     <div className="relative">
@@ -400,18 +419,28 @@ const AdminDashboard = () => {
                                         </div>
                                         <p className="text-sm text-gray-600">{product.categoryId.name}</p>
                                         <div className="flex items-center gap-2 mt-1">
-                          <span className="font-medium text-heroes-red">
-                            {product.isOnSale && product.salePrice
-                                ? product.salePrice
-                                : product.customerPrice}{" "}
-                            ₪
-                          </span>
+                                          <span className="font-medium text-heroes-red">
+                                            {product.isOnSale && product.salePrice
+                                                ? product.salePrice
+                                                : product.customerPrice}{" "}
+                                            ₪
+                                          </span>
                                           {product.isOnSale && (
                                               <Badge variant="secondary">تخفيض</Badge>
                                           )}
                                           {product.isSoldOut && (
                                               <Badge variant="destructive">نفدت الكمية</Badge>
                                           )}
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-2">
+                                          <span className="text-sm">مميز</span>
+
+                                          <Switch
+                                              checked={product.isFeatured || false}
+                                              onCheckedChange={() =>
+                                                  toggleFeatured(product._id)
+                                              }
+                                          />
                                         </div>
                                       </div>
 
@@ -525,7 +554,8 @@ const AdminDashboard = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>        </Tabs>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Add Product Dialog */}

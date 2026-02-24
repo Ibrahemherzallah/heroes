@@ -1,11 +1,5 @@
 import express from 'express';
-import {
-    createProduct,
-    deleteProduct,
-    getFeaturedProducts,
-    getProductById, getProducts, getRelatedProducts, reorderProduct,
-    updateProduct
-} from "../controllers/product.controller.js";
+import {createProduct, deleteProduct, getFeaturedProducts, getProductById, getProducts, getRelatedProducts, reorderProduct, toggleFeatured, updateProduct} from "../controllers/product.controller.js";
 import {authenticate} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -17,6 +11,7 @@ router.get('/featured', getFeaturedProducts);
 router.get('/related/:categoryId', getRelatedProducts);
 router.get("/:id", getProductById);
 router.put("/:id",authenticate, updateProduct);
+router.patch("/:id/toggle-featured",authenticate, toggleFeatured);
 router.delete("/:id",authenticate, deleteProduct);
 
 export default router;

@@ -62,6 +62,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             deliveryPrice: deliveryPrice,
             numOfItems,
             products: cartItems.map(item => ({
+                id: item._id,
                 productId: item.id,
                 quantity: item.quantity
             }))
@@ -69,7 +70,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
 
         try {
             // 1. Submit order to backend
-            const response = await fetch(`https://heroess.top/api/order`, {
+            const response = await fetch(`${import.meta.env.VITE_ENV}/api/order`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderPayload)
@@ -81,7 +82,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             }
 
             // 2. Send WhatsApp message
-            await fetch(`https://heroess.top/api/order/send-whatsapp`, {
+            await fetch(`${import.meta.env.VITE_ENV}/api/order/send-whatsapp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

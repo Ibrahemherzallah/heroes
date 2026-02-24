@@ -7,20 +7,38 @@ import { useCart } from '@/contexts/CartContext';
 import logo from '../../public/heroes-logo.png';
 import CartDrawer from './CartDrawer';
 import { useNavigate } from 'react-router-dom';
+import { User as UserIcon } from "lucide-react";
+import { Heart } from "lucide-react";
+import { useFavorite } from "@/contexts/FavoriteContext";
 
 const Header = () => {
   const { getTotalItems } = useCart();
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const token = localStorage.getItem('adminToken');
   const navigate = useNavigate();
-  const handleClick = () => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      navigate('/admin/dashboard');
-    } else {
-      navigate('/admin/login');
+  const { favorites } = useFavorite();
+
+  const handleProfileClick = () => {
+    const token = localStorage.getItem("token");
+    const rawUser = localStorage.getItem("user");
+    if (!token || !rawUser) {
+      // not logged in → go to login page
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const user = JSON.parse(rawUser);
+      if (user.isAdmin) {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/profile");
+      }
+    } catch (e) {
+      console.error("Failed to parse user from localStorage", e);
+      navigate("/login");
     }
   };
+
   return (
     <>
       <header className="bg-white shadow-sm border-b">
@@ -62,9 +80,22 @@ const Header = () => {
                   </Badge>
                 )}
               </Button>
+              <Button
+                  variant="outline"
+                  size="icon"
+                  className="relative"
+                  onClick={() => navigate("/favorites")}
+              >
+                <Heart className="h-5 w-5" />
 
-              <Button variant="outline" size="sm" onClick={handleClick}>
-                لوحة الإدارة
+                {favorites.length > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-heroes-red">
+                      {favorites.length}
+                    </Badge>
+                )}
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleProfileClick}>
+                <UserIcon className="w-5 h-5" />
               </Button>
             </div>
           </div>

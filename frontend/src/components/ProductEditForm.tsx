@@ -268,6 +268,57 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, cate
           </label>
         </div>
 
+        {/* Wholesaler Price */}
+        <div className="md:col-span-2 mb-4">
+          <label className="block text-sm font-medium mb-2">سعر الجملة *</label>
+          <Input
+              type="number"
+              step="0.01"
+              value={formData.wholesalerPrice}
+              onChange={(e) => setFormData(prev => ({ ...prev, wholesalerPrice: e.target.value }))}
+              placeholder="0.00"
+              required
+          />
+        </div>
+        {/* Product Type */}
+        <div className="md:col-span-2 mb-4">
+          <label className="block text-sm font-medium mb-2">نوع المنتج *</label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                  type="radio"
+                  value="inStore"
+                  checked={formData.type === 'inStore'}
+                  onChange={() => setFormData(prev => ({ ...prev, type: 'inStore' }))}
+              />
+              منتج موجود في المتجر
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                  type="radio"
+                  value="sourced"
+                  checked={formData.type === 'sourced'}
+                  onChange={() => setFormData(prev => ({ ...prev, type: 'sourced' }))}
+              />
+              منتج من مصدر خارجي
+            </label>
+          </div>
+        </div>
+
+        {/* Stock (only if inStore) */}
+        {formData.type === 'inStore' && (
+            <div className="md:col-span-2 mb-4">
+              <label className="block text-sm font-medium mb-2">عدد المنتجات في المخزن *</label>
+              <Input
+                  type="number"
+                  value={formData.stock || 0}
+                  onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
+                  min={0}
+                  required
+              />
+            </div>
+        )}
+
         <div className="md:col-span-2 flex gap-2">
           <Button type="submit" className="bg-heroes-red hover:bg-heroes-red/90">
             تحديث المنتج

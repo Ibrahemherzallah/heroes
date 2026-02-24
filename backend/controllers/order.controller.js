@@ -2,43 +2,50 @@
 import Order from "../models/order.model.js";
 import twilio from 'twilio';
 import dotenv from 'dotenv';
+import Product from "../models/product.model.js";
 dotenv.config();
 // Create Order
 export const createOrder = async (req, res) => {
     try {
-        const {
-            fullName,
-            phoneNumber,
-            region,
-            city,
-            price,
-            deliveryPrice,
-            numOfItems,
-            products, // <-- receive array of productId + quantity
-            notes,
-        } = req.body;
+        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes,} = req.body;
 
         // Validate required fields
-        if (
-            !fullName ||
-            !phoneNumber ||
-            !region ||
-            !city ||
-            typeof price !== 'number' ||
-            typeof deliveryPrice !== 'number' ||
-            typeof numOfItems !== 'number' ||
-            !Array.isArray(products) ||
-            products.length === 0
-        ) {
+        if (!fullName || !phoneNumber || !region || !city || typeof price !== 'number' || typeof deliveryPrice !== 'number' || typeof numOfItems !== 'number' || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({ error: 'Missing or invalid required fields' });
         }
 
-        // Validate each product entry
-        for (const p of products) {
-            if (!p.productId || typeof p.quantity !== 'number') {
+        // 🔥 STOCK LOGIC STARTS HERE
+        for (const item of products) {
+
+            if (!item.productId || typeof item.quantity !== 'number') {
                 return res.status(400).json({ error: 'Each product must include productId and quantity' });
             }
+
+            const product = await Product.findById(item.id);
+
+            if (!product) {
+                return res.status(404).json({ error: `Product not found: ${item.productId}` });
+            }
+
+            // Only decrease stock if type is inStore
+            if (product.type === "inStore") {
+
+                if (product.stock < item.quantity) {
+                    return res.status(400).json({
+                        error: `Not enough stock for product ${product._id}`
+                    });
+                }
+
+                product.stock -= item.quantity;
+
+                if (product.stock === 0) {
+                    product.isSoldOut = true;
+                }
+
+                await product.save();
+            }
         }
+        // 🔥 STOCK LOGIC ENDS HERE
 
         const newOrder = new Order({
             fullName,
@@ -54,13 +61,16 @@ export const createOrder = async (req, res) => {
 
         await newOrder.save();
 
-        res.status(201).json({ message: 'Order created successfully', order: newOrder });
+        res.status(201).json({
+            message: 'Order created successfully',
+            order: newOrder
+        });
+
     } catch (error) {
         console.error('Order creation error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
 
 // Get All Orders
 export const getAllOrders = async (req, res) => {
