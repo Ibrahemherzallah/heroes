@@ -72,6 +72,7 @@ export const signup = async (req, res) => {
             password,
             isAdmin: false,
             phone,
+            points: 0,
             // لو جاية من input type="date" فهي string "YYYY-MM-DD"
             dob: dob ? new Date(dob) : undefined,
         });

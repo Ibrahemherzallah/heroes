@@ -1,5 +1,6 @@
 // controllers/orderController.js
 import Order from "../models/order.model.js";
+import User from "../models/user.model.js";
 import twilio from 'twilio';
 import dotenv from 'dotenv';
 import Product from "../models/product.model.js";
@@ -68,26 +69,16 @@ export const createOrder = async (req, res) => {
         });
 
         await newOrder.save();
+        console.log("req.user os : ", req.user)
 
-        // ✅ IF REQUEST HAS A VALID USER TOKEN → add order to orderHistory
-        try {
-            const authHeader = req.headers.authorization;
+        if (req.user) {
+            const totalAmount = price + deliveryPrice;
+            const earnedPoints = Math.floor(totalAmount / 100);
 
-            if (authHeader && authHeader.startsWith("Bearer ")) {
-                const token = authHeader.split(" ")[1];
-
-                const decoded = jwt.verify(token, JWT_SECRET);
-                const userId = decoded.userId;
-
-                if (userId) {
-                    await User.findByIdAndUpdate(userId, {
-                        $push: { orderHistory: newOrder._id },
-                    });
-                }
-            }
-        } catch (err) {
-            // don't block the order if token is missing/invalid
-            console.warn("Could not attach order to user:", err.message);
+            await User.findByIdAndUpdate(req.user._id, {
+                $push: { orderHistory: newOrder._id },
+                $inc: { points: earnedPoints }
+            });
         }
 
         res.status(201).json({
@@ -145,9 +136,14 @@ export const deleteOrder = async (req, res) => {
 
 export const getMyOrders = async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user._id })
+        console.log("user req is : ", req.user);
+        console.log("user user._id is : ", req.user._id);
+        // const orders = await Order.find({
+        //     _id: { $in: req.user.orderHistory }
+        // }).sort({ createdAt: -1 });
+        const orders = await Order.find({ _id: { $in: req.user.orderHistory } })
             .sort({ createdAt: -1 })
-            .populate("orderItems.product"); // احذفها إذا ما عندك populate
+            .populate("products.productId");
 
         res.json({ orders });
     } catch (error) {

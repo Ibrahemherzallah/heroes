@@ -1,10 +1,11 @@
 import express from "express";
 import {createOrder, getAllOrders, getOrderById, updateOrder, deleteOrder, sendWhatsAppMessage, sendContactUsMessage, getMyOrders} from "../controllers/order.controller.js";
 import { authenticate } from "../middleware/authMiddleware.js";
+import {optionalAuth} from "../middleware/optionalAuth.js";
 
 const router = express.Router();
 
-router.post("/", createOrder);
+router.post("/", optionalAuth, createOrder);
 router.get("/", getAllOrders);
 
 // ✅ Put specific routes BEFORE dynamic routes
