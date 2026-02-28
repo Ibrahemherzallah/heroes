@@ -10,7 +10,7 @@ import { UserPlus } from "lucide-react";
 const Signup = () => {
     const navigate = useNavigate();
     const [userName, setUserName] = useState("");
-    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +36,7 @@ const Signup = () => {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ email, userName, password, dob }),
+                body: JSON.stringify({ phone, userName, password, dob }),
             });
 
             const data = await response.json();
@@ -97,14 +97,13 @@ const Signup = () => {
 
                         <div>
                             <label className="block text-sm font-medium mb-2">
-                                البريد الإلكتروني
+                                رقم الهاتف
                             </label>
                             <Input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="you@example.com"
-                                required
+                                type="text"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                placeholder="059xxxxxxxxx"
                             />
                         </div>
                         <div>

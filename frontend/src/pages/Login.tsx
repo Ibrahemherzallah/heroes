@@ -9,9 +9,9 @@ import { User as UserIcon } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [identifier, setIdentifier] = useState("");
   // لو فيه جلسة سابقة
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -33,14 +33,12 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      console.log("email is : ", email,'d')
-      console.log("password is : ", password,'d')
       const response = await fetch(`${import.meta.env.VITE_ENV}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userEmail:email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       const data = await response.json();
@@ -95,13 +93,14 @@ const Login = () => {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  البريد الإلكتروني
+                  البريد الإلكتروني أو رقم الهاتف
                 </label>
+
                 <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder="059xxxxxxx"
                     required
                 />
               </div>

@@ -4,35 +4,43 @@ import twilio from 'twilio';
 import dotenv from 'dotenv';
 import Product from "../models/product.model.js";
 dotenv.config();
-// Create Order
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+
+
 export const createOrder = async (req, res) => {
     try {
         const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes,} = req.body;
 
-        // Validate required fields
-        if (!fullName || !phoneNumber || !region || !city || typeof price !== 'number' || typeof deliveryPrice !== 'number' || typeof numOfItems !== 'number' || !Array.isArray(products) || products.length === 0) {
-            return res.status(400).json({ error: 'Missing or invalid required fields' });
+        // basic validation
+        if (!fullName || !phoneNumber || !region || !city || typeof price !== "number" || typeof deliveryPrice !== "number" || typeof numOfItems !== "number" || !Array.isArray(products) || products.length === 0) {
+            return res
+                .status(400)
+                .json({ error: "Missing or invalid required fields" });
         }
 
-        // 🔥 STOCK LOGIC STARTS HERE
+        // 🔥 STOCK LOGIC
         for (const item of products) {
-
-            if (!item.productId || typeof item.quantity !== 'number') {
-                return res.status(400).json({ error: 'Each product must include productId and quantity' });
+            if (!item.productId || typeof item.quantity !== "number") {
+                return res
+                    .status(400)
+                    .json({ error: "Each product must include productId and quantity" });
             }
 
+            // NOTE: adjust if you want to use productId instead of id
             const product = await Product.findById(item.id);
 
             if (!product) {
-                return res.status(404).json({ error: `Product not found: ${item.productId}` });
+                return res
+                    .status(404)
+                    .json({ error: `Product not found: ${item.productId}` });
             }
 
-            // Only decrease stock if type is inStore
             if (product.type === "inStore") {
-
                 if (product.stock < item.quantity) {
                     return res.status(400).json({
-                        error: `Not enough stock for product ${product._id}`
+                        error: `Not enough stock for product ${product._id}`,
                     });
                 }
 
@@ -45,8 +53,8 @@ export const createOrder = async (req, res) => {
                 await product.save();
             }
         }
-        // 🔥 STOCK LOGIC ENDS HERE
 
+        // ✅ CREATE ORDER
         const newOrder = new Order({
             fullName,
             phoneNumber,
@@ -61,17 +69,36 @@ export const createOrder = async (req, res) => {
 
         await newOrder.save();
 
-        res.status(201).json({
-            message: 'Order created successfully',
-            order: newOrder
-        });
+        // ✅ IF REQUEST HAS A VALID USER TOKEN → add order to orderHistory
+        try {
+            const authHeader = req.headers.authorization;
 
+            if (authHeader && authHeader.startsWith("Bearer ")) {
+                const token = authHeader.split(" ")[1];
+
+                const decoded = jwt.verify(token, JWT_SECRET);
+                const userId = decoded.userId;
+
+                if (userId) {
+                    await User.findByIdAndUpdate(userId, {
+                        $push: { orderHistory: newOrder._id },
+                    });
+                }
+            }
+        } catch (err) {
+            // don't block the order if token is missing/invalid
+            console.warn("Could not attach order to user:", err.message);
+        }
+
+        res.status(201).json({
+            message: "Order created successfully",
+            order: newOrder,
+        });
     } catch (error) {
-        console.error('Order creation error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("Order creation error:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 };
-
 // Get All Orders
 export const getAllOrders = async (req, res) => {
     try {
@@ -116,7 +143,18 @@ export const deleteOrder = async (req, res) => {
     }
 };
 
+export const getMyOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({ user: req.user._id })
+            .sort({ createdAt: -1 })
+            .populate("orderItems.product"); // احذفها إذا ما عندك populate
 
+        res.json({ orders });
+    } catch (error) {
+        console.error("Get my orders error:", error);
+        res.status(500).json({ error: "حدث خطأ أثناء جلب الطلبات" });
+    }
+};
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;

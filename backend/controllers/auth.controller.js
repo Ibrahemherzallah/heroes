@@ -7,43 +7,47 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 
 // helper to safely use a string in RegExp
-const escapeRegExp = (str = "") =>
-    str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (str = "") => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const login = async (req, res) => {
-    const { userEmail, password } = req.body;
+    const { identifier, password } = req.body;
+    // identifier = email OR phone
 
     try {
-        const normalizedEmail = (userEmail || "").trim();
-        console.log("normalized email: >", normalizedEmail, "<");
-        const allUsers = await User.find().select("_id email");
-        console.log("ALL USERS:", allUsers);
-        // 🔍 more tolerant search: case-insensitive exact match
-        const user = await User.findOne({
-            email: {
-                $regex: `^${escapeRegExp(normalizedEmail)}$`,
-                $options: "i", // ignore case
-            },
-        });
+        const normalized = (identifier || "").trim();
 
-        console.log("user is : ", user);
+        const user = await User.findOne({
+            $or: [
+                {
+                    email: {
+                        $regex: `^${escapeRegExp(normalized)}$`,
+                        $options: "i",
+                    },
+                },
+                {
+                    phone: normalized,
+                },
+            ],
+        });
 
         if (!user || !(await user.comparePassword(password))) {
             return res
                 .status(401)
-                .json({ error: "خطأ في كلمة المرور أو البريد الإلكتروني" });
+                .json({ error: "خطأ في بيانات تسجيل الدخول" });
         }
 
         const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-            expiresIn: "7d",
+            expiresIn: "30d",
         });
 
         return res.status(200).json({
             token,
             user: {
                 id: user._id,
-                email: user.email,      // ✅ correct field
+                email: user.email,
+                phone: user.phone,
                 userName: user.userName,
+                role: user.role,
                 isAdmin: user.isAdmin,
                 dob: user.dob,
             },
@@ -53,20 +57,21 @@ export const login = async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 };
+
 export const signup = async (req, res) => {
-    const { email, userName, password, dob } = req.body;
+    const { phone, userName, password, dob } = req.body;
 
     try {
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ phone });
         if (existingUser) {
-            return res.status(400).json({ error: "هذا البريد مستخدم من قبل" });
+            return res.status(400).json({ error: "هذا الرقم مستخدم من قبل" });
         }
 
         const newUser = new User({
-            email,
             userName,
             password,
             isAdmin: false,
+            phone,
             // لو جاية من input type="date" فهي string "YYYY-MM-DD"
             dob: dob ? new Date(dob) : undefined,
         });
@@ -82,11 +87,12 @@ export const signup = async (req, res) => {
             token,
             user: {
                 id: newUser._id,
-                email: newUser.email,
                 userName: newUser.userName,
                 isAdmin: newUser.isAdmin,
                 dob: newUser.dob,
-            },
+                role: 'user',
+                phone: newUser.phone
+            }
         });
     } catch (error) {
         console.error("Signup error:", error);
@@ -106,20 +112,36 @@ export const getProfile = async (req, res) => {
     }
 };
 
+
 export const updateProfile = async (req, res) => {
-    const { userName, email } = req.body;
-
     try {
-        const updatedUser = await User.findByIdAndUpdate(
-            req.userId,
-            { userName, email },
-            { new: true, runValidators: true }
-        ).select('userName email');
+        const { userName, phone, dob } = req.body;
 
-        res.status(200).json({ message: 'Profile updated', user: updatedUser });
-    } catch (err) {
-        console.error('Update profile error:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({ error: "المستخدم غير موجود" });
+        }
+
+        user.userName = userName || user.userName;
+        user.phone = phone || user.phone;
+        user.dob = dob || user.dob;
+
+        await user.save();
+
+        res.json({
+            message: "تم تحديث البيانات بنجاح",
+            user: {
+                _id: user._id,
+                userName: user.userName,
+                phone: user.phone,
+                dob: user.dob,
+                isAdmin: user.isAdmin,
+            },
+        });
+    } catch (error) {
+        console.error("Update profile error:", error);
+        res.status(500).json({ error: "حدث خطأ أثناء تحديث البيانات" });
     }
 };
 

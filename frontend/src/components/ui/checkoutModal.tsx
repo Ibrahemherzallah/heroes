@@ -30,7 +30,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { getTotalPrice, clearCart, cartItems } = useCart();
-
+    const token = localStorage.getItem('token');
     const selectedRegion = deliveryRegions.find(region => region.name === formData.region);
     const deliveryPrice = selectedRegion ? selectedRegion.price : 0;
     const totalPrice = getTotalPrice() + deliveryPrice;
@@ -69,11 +69,17 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
         };
 
         try {
-            // 1. Submit order to backend
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
             const response = await fetch(`${import.meta.env.VITE_ENV}/api/order`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderPayload)
+                headers,
+                body: JSON.stringify(orderPayload),
             });
 
             if (!response.ok) {
