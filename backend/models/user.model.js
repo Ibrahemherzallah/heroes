@@ -4,17 +4,14 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
     {
-        email: {
-            type: String,
-            required: true,
-            unique: true,
-            lowercase: true,
-            trim: true,
-        },
         userName: {
             type: String,
             required: true,
             trim: true,
+        },
+        phone: {
+            type: String,
+            required: true,
         },
         password: {
             type: String,
@@ -24,11 +21,22 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
-        // 🆕 Date of birth
         dob: {
-            type: Date,   // يمكنك جعله String لو حاب
+            type: Date,
             required: false,
         },
+        role: {
+            type: String,
+            required: true,
+            enum: ["admin", "user", "wholesaler"],
+            default: 'user',
+        },
+        orderHistory: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Order",
+            },
+        ],
     },
     { timestamps: true }
 );
