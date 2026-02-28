@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema(
             type: Date,
             required: false,
         },
+        points: {
+            type: Number,
+            required: false,
+        },
         role: {
             type: String,
             required: true,

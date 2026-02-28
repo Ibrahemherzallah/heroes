@@ -366,66 +366,36 @@ const Profile = () => {
                                 !ordersError &&
                                 orders.length > 0 && (
                                     <div className="space-y-3">
-                                        {orders.map((order) => {
-                                            const status = getDisplayStatus(order);
-                                            const statusLabel =
-                                                status === "ordered"
-                                                    ? "Ordered"
-                                                    : status === "shipped"
-                                                        ? "Shipped"
-                                                        : "Delivered";
-
-                                            const statusColor =
-                                                status === "ordered"
-                                                    ? "bg-yellow-100 text-yellow-700"
-                                                    : status === "shipped"
-                                                        ? "bg-blue-100 text-blue-700"
-                                                        : "bg-green-100 text-green-700";
-
-                                            return (
+                                        <div className="mt-3 space-y-2">
+                                            {order.products.map((item, index) => (
                                                 <div
-                                                    key={order._id}
-                                                    className="border border-gray-100 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                                                    key={index}
+                                                    className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl"
                                                 >
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <Package className="w-4 h-4 text-gray-500" />
-                                                            <span className="text-sm font-semibold">
-                                Order #{order._id.slice(-6)}
-                              </span>
-                                                        </div>
-                                                        <p className="text-xs text-gray-500">
-                                                            Date:{" "}
-                                                            {new Date(order.createdAt).toLocaleString(
-                                                                "ar-EG"
-                                                            )}
+                                                    {/* صورة المنتج */}
+                                                    <img
+                                                        src={item.productId?.image?.[0] || "/placeholder.png"}
+                                                        alt={item.productId?.productName}
+                                                        className="w-12 h-12 object-cover rounded-lg"
+                                                    />
+
+                                                    {/* تفاصيل المنتج */}
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium">
+                                                            {item.productId?.productName}
                                                         </p>
                                                         <p className="text-xs text-gray-500">
-                                                            Items: {order.numOfItems} | Total:{" "}
-                                                            {order.totalPrice.toFixed(2)} ₪
+                                                            Quantity: {item.quantity}
                                                         </p>
                                                     </div>
 
-                                                    <div className="flex flex-col items-start md:items-end gap-2">
-                            <span
-                                className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}
-                            >
-                              {statusLabel}
-                            </span>
-                                                        {order.status === "shipped" &&
-                                                            status === "shipped" && (
-                                                                <p className="text-[11px] text-gray-500">
-                                                                    Will be marked as{" "}
-                                                                    <span className="font-semibold">
-                                    Delivered
-                                  </span>{" "}
-                                                                    5 days after shipping.
-                                                                </p>
-                                                            )}
-                                                    </div>
+                                                    {/* السعر */}
+                                                    <p className="text-sm font-semibold">
+                                                        {(item.productId?.customerPrice * item.quantity).toFixed(2)} ₪
+                                                    </p>
                                                 </div>
-                                            );
-                                        })}
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                         </div>
@@ -455,13 +425,13 @@ const Profile = () => {
                                     <span className="font-semibold">الخصم المتاح:</span>{" "}
                                     {currentDiscount > 0 ? (
                                         <span className="text-[#7a4a23] font-bold">
-                      {currentDiscount}%
-                    </span>
-                                    ) : (
-                                        <span className="text-gray-600">
-                      لا يوجد خصم متاح حالياً، استمر في الشراء لتحصيل المزيد من
-                      النقاط 🎁
-                    </span>
+                                      {currentDiscount}%
+                                    </span>
+                                                    ) : (
+                                                        <span className="text-gray-600">
+                                      لا يوجد خصم متاح حالياً، استمر في الشراء لتحصيل المزيد من
+                                      النقاط 🎁
+                                    </span>
                                     )}
                                 </p>
                             </div>

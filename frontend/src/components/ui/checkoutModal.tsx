@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +34,22 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     const selectedRegion = deliveryRegions.find(region => region.name === formData.region);
     const deliveryPrice = selectedRegion ? selectedRegion.price : 0;
     const totalPrice = getTotalPrice() + deliveryPrice;
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const storedUser = localStorage.getItem("user");
+
+        if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+
+            setFormData(prev => ({
+                ...prev,
+                fullName: parsedUser.userName || "",
+                phoneNumber: parsedUser.phone || "",
+            }));
+        }
+    }, [isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
