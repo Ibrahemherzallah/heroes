@@ -26,11 +26,28 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    status: {
+        type: String,
+        enum: ['ordered', 'shipped', 'delivered'],
+        default: 'ordered',
+    },
+    shippedAt: {
+        type: Date,
+    },
+    deliveredAt: {
+        type: Date,
+    },
     products: [
         {
             productId: String,
-            quantity: Number,
-        }
+            name: String,
+            image: String,
+            price: Number,
+            quantity: {
+                type: Number,
+                required: true,
+            },
+        },
     ],
     notes: {
         type: String,

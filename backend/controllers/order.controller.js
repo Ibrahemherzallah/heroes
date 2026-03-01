@@ -1,4 +1,3 @@
-// controllers/orderController.js
 import Order from "../models/order.model.js";
 import User from "../models/user.model.js";
 import twilio from 'twilio';
@@ -14,34 +13,32 @@ export const createOrder = async (req, res) => {
     try {
         const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes,} = req.body;
 
-        // basic validation
         if (!fullName || !phoneNumber || !region || !city || typeof price !== "number" || typeof deliveryPrice !== "number" || typeof numOfItems !== "number" || !Array.isArray(products) || products.length === 0) {
-            return res
-                .status(400)
-                .json({ error: "Missing or invalid required fields" });
+            return res.status(400).json({ error: "Missing or invalid required fields" });
         }
 
-        // 🔥 STOCK LOGIC
+        const formattedProducts = [];
+
+        // 🔥 STOCK + SNAPSHOT LOGIC
         for (const item of products) {
-            if (!item.productId || typeof item.quantity !== "number") {
+            if (!item.id || typeof item.quantity !== "number") {
                 return res
                     .status(400)
-                    .json({ error: "Each product must include productId and quantity" });
+                    .json({ error: "Each product must include id and quantity" });
             }
 
-            // NOTE: adjust if you want to use productId instead of id
             const product = await Product.findById(item.id);
-
             if (!product) {
                 return res
                     .status(404)
-                    .json({ error: `Product not found: ${item.productId}` });
+                    .json({ error: `Product not found: ${item.id}` });
             }
 
+            // 🟢 Stock check (لو المنتج من المخزون)
             if (product.type === "inStore") {
                 if (product.stock < item.quantity) {
                     return res.status(400).json({
-                        error: `Not enough stock for product ${product._id}`,
+                        error: `Not enough stock for ${product.productName}`,
                     });
                 }
 
@@ -53,9 +50,17 @@ export const createOrder = async (req, res) => {
 
                 await product.save();
             }
-        }
 
-        // ✅ CREATE ORDER
+            // 🟢 خزّن snapshot
+            formattedProducts.push({
+                productId: product.id,
+                name: product.productName,
+                image: product.image?.[0] || "",
+                price: product.customerPrice,
+                quantity: item.quantity,
+            });
+        }
+        // ✅ Create order
         const newOrder = new Order({
             fullName,
             phoneNumber,
@@ -64,20 +69,20 @@ export const createOrder = async (req, res) => {
             price,
             deliveryPrice,
             numOfItems,
-            products,
+            products: formattedProducts,
             notes,
         });
 
         await newOrder.save();
-        console.log("req.user os : ", req.user)
 
+        // 🎁 Points logic
         if (req.user) {
             const totalAmount = price + deliveryPrice;
             const earnedPoints = Math.floor(totalAmount / 100);
 
             await User.findByIdAndUpdate(req.user._id, {
                 $push: { orderHistory: newOrder._id },
-                $inc: { points: earnedPoints }
+                $inc: { points: earnedPoints },
             });
         }
 
@@ -123,14 +128,54 @@ export const updateOrder = async (req, res) => {
     }
 };
 
+export const updateOrderStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        const { id } = req.params;
+
+        if (!['ordered', 'shipped', 'delivered'].includes(status)) {
+            return res.status(400).json({ error: "Invalid status" });
+        }
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        order.status = status;
+
+        if (status === "shipped") {
+            order.shippedAt = new Date();
+        }
+
+        if (status === "delivered") {
+            order.deliveredAt = new Date();
+        }
+
+        await order.save();
+
+        res.json({ message: "Order updated", order });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+    }
+};
 // Delete Order
 export const deleteOrder = async (req, res) => {
     try {
-        const deletedOrder = await Order.findByIdAndDelete(req.params.id);
-        if (!deletedOrder) return res.status(404).json({ message: "Order not found" });
-        res.status(200).json({ message: "Order deleted" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const { id } = req.params;
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        await Order.findByIdAndDelete(id);
+
+        res.json({ message: "Order deleted successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
     }
 };
 

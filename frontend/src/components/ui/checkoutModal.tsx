@@ -80,6 +80,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             products: cartItems.map(item => ({
                 id: item._id,
                 productId: item.id,
+                image: item.image[0],
+                name: item.productName,
+                price: item.customerPrice,
                 quantity: item.quantity
             }))
         };

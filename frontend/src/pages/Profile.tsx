@@ -362,42 +362,102 @@ const Profile = () => {
                                 </p>
                             )}
 
-                            {!ordersLoading &&
-                                !ordersError &&
-                                orders.length > 0 && (
-                                    <div className="space-y-3">
-                                        <div className="mt-3 space-y-2">
-                                            {order.products.map((item, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl"
-                                                >
-                                                    {/* صورة المنتج */}
-                                                    <img
-                                                        src={item.productId?.image?.[0] || "/placeholder.png"}
-                                                        alt={item.productId?.productName}
-                                                        className="w-12 h-12 object-cover rounded-lg"
-                                                    />
+                            {!ordersLoading && !ordersError && orders.length > 0 && (
+                                <div className="space-y-4">
+                                    {orders.map((order) => {
+                                        const status = getDisplayStatus(order);
 
-                                                    {/* تفاصيل المنتج */}
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-medium">
-                                                            {item.productId?.productName}
-                                                        </p>
+                                        const statusLabel =
+                                            status === "ordered"
+                                                ? "Ordered"
+                                                : status === "shipped"
+                                                    ? "Shipped"
+                                                    : "Delivered";
+
+                                        const statusColor =
+                                            status === "ordered"
+                                                ? "bg-yellow-100 text-yellow-700"
+                                                : status === "shipped"
+                                                    ? "bg-blue-100 text-blue-700"
+                                                    : "bg-green-100 text-green-700";
+
+                                        // حساب إجمالي السعر إذا ما كان موجود
+                                        const calculatedTotal = order.products?.reduce((acc, item) => {
+                                            const price = item.productId?.customerPrice || 0;
+                                            return acc + price * item.quantity;
+                                        }, 0);
+
+                                        return (
+                                            <div key={order._id} className="border border-gray-100 rounded-2xl p-4">
+                                                {/* ===== Header ===== */}
+                                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <Package className="w-4 h-4 text-gray-500" />
+                                                            <span className="text-sm font-semibold">
+                                                              Order #{order._id.slice(-6)}
+                                                            </span>
+                                                        </div>
+
                                                         <p className="text-xs text-gray-500">
-                                                            Quantity: {item.quantity}
+                                                            Date:{" "}
+                                                            {new Date(order.createdAt).toLocaleString("ar-EG")}
+                                                        </p>
+
+                                                        <p className="text-xs text-gray-500">
+                                                            Total:{" "}{(order.price || calculatedTotal)?.toFixed(2)} ₪
                                                         </p>
                                                     </div>
 
-                                                    {/* السعر */}
-                                                    <p className="text-sm font-semibold">
-                                                        {(item.productId?.customerPrice * item.quantity).toFixed(2)} ₪
-                                                    </p>
+                                                    <div className="flex flex-col items-start md:items-end gap-2">
+                                                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+                                                            {statusLabel}
+                                                          </span>
+
+                                                        {order.status === "shipped" &&
+                                                            status === "shipped" && (
+                                                                <p className="text-[11px] text-gray-500">
+                                                                    سيصل المنتج خلال 5 أيام كحد أقصى في معظم الحالات.
+                                                                </p>
+                                                            )}
+                                                    </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+
+                                                {/* ===== Products List ===== */}
+                                                <div className="space-y-3">
+                                                    {order.products?.map((item, index) => (
+                                                        <div key={index} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl">
+                                                            {/* معلومات المنتج */}
+                                                            <div className="flex-1">
+                                                                <p className="text-sm font-medium">
+                                                                    {item.name}
+                                                                </p>
+
+                                                                <p className="text-xs text-gray-500">
+                                                                    Quantity: {item.quantity}
+                                                                </p>
+
+                                                                <p className="text-xs text-gray-500">
+                                                                    Price:{" "}
+                                                                    {item.price?.toFixed(2)} ₪
+                                                                </p>
+                                                            </div>
+
+                                                            {/* إجمالي المنتج */}
+                                                            <div className="text-sm font-semibold">
+                                                                {(
+                                                                    (item.price || 0) *
+                                                                    item.quantity
+                                                                ).toFixed(2)} ₪
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
 
