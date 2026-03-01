@@ -1,5 +1,5 @@
 import express from "express";
-import {createOrder, getAllOrders, getOrderById, updateOrder, deleteOrder, sendWhatsAppMessage, sendContactUsMessage, getMyOrders} from "../controllers/order.controller.js";
+import {createOrder, getAllOrders, getOrderById, updateOrder, deleteOrder, sendWhatsAppMessage, sendContactUsMessage, getMyOrders, updateOrderStatus} from "../controllers/order.controller.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import {optionalAuth} from "../middleware/optionalAuth.js";
 
@@ -17,6 +17,7 @@ router.post("/send-contact-us", sendContactUsMessage);
 // ❗ Keep this LAST
 router.get("/:id", getOrderById);
 router.put("/:id", updateOrder);
-router.delete("/:id", deleteOrder);
+router.patch("/:id/status", authenticate, updateOrderStatus);
+router.delete("/:id", authenticate, deleteOrder);
 
 export default router;

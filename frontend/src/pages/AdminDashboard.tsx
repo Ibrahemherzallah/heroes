@@ -14,6 +14,9 @@ import ProductAddForm from '@/components/ProductAddForm';
 import { Search, User } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Switch } from "@/components/ui/switch";
+import axios from "axios";
+import { Checkbox } from "@/components/ui/checkbox";
+
 interface Order {
   _id: string;
   fullName: string;
@@ -45,6 +48,17 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
 
   const token = localStorage.getItem('token');
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_ENV}/api/order`);
+      const data = await res.json();
+      setOrders(data);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -78,16 +92,6 @@ const AdminDashboard = () => {
       fetchProducts()
     }
     if(activeTab === 'orders') {
-      const fetchOrders = async () => {
-        try {
-          const res = await fetch(`${import.meta.env.VITE_ENV}/api/order`);
-          const data = await res.json();
-          setOrders(data);
-        } catch (error) {
-          console.error('Error fetching orders:', error);
-        }
-      };
-
       fetchOrders();
     }
     fetchCategories();
@@ -316,8 +320,44 @@ const AdminDashboard = () => {
     });
   };
 
+  const handleStatusChange = async (id, status) => {
+    try {
+      await axios.patch(
+          `${import.meta.env.VITE_ENV}/api/order/${id}/status`,
+          { status: "shipped" },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+      await fetchOrders(); // reload
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("هل أنت متأكد من حذف الطلب؟")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.delete(
+          `${import.meta.env.VITE_ENV}/api/order/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+
+      fetchOrders();
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -532,22 +572,86 @@ const AdminDashboard = () => {
                 ) : (
                     <div className="space-y-4">
                       {orders.map((order) => (
-                          <div key={order._id} className="border p-4 rounded-lg shadow-sm">
+                          <div
+                              key={order._id}
+                              className={`border p-4 rounded-lg shadow-sm bg-white transition-all duration-300
+                               ${
+                                  order.status === "shipped"
+                                      ? "opacity-60"
+                                      : order.status === "delivered"
+                                          ? "opacity-40"
+                                          : "opacity-100"
+                              }`}
+                          >
+                            {/* Header */}
                             <div className="flex justify-between items-center mb-2">
-                              <h3 className="text-lg font-semibold">{order.fullName}</h3>
-                              <span className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleString()}</span>
+                              <h3 className="text-lg font-semibold">
+                                {order.fullName}
+                              </h3>
+
+                              <div className="flex items-center gap-3">
+                                {/* Status Badge */}
+                                <span
+                                    className={`text-xs px-3 py-1 rounded-full font-medium
+                                    ${
+                                        order.status === "ordered"
+                                            ? "bg-yellow-100 text-yellow-700"
+                                            : order.status === "shipped"
+                                                ? "bg-blue-100 text-blue-700"
+                                                : "bg-green-100 text-green-700"
+                                    }`}
+                                >
+                                  {order.status}
+                                </span>
+
+                                <span className="text-sm text-gray-500">
+                                  {new Date(order.createdAt).toLocaleString()}
+                                </span>
+                              </div>
                             </div>
-                            <p><strong>الهاتف :</strong><span style={{opacity:'0'}}>s</span><span>{order.phoneNumber}</span> </p>
-                            <p><strong>  المنطقة :</strong><span style={{opacity:'0'}}>s</span>{order.region} - {order.city} </p>
-                            <p><strong>السعر :</strong><span style={{opacity:'0'}}>s</span> {order.price}₪</p>
-                            <p><strong>التوصيل :</strong><span style={{opacity:'0'}}>s</span> {order.deliveryPrice}₪</p>
-                            {order.notes && <p><strong>ملاحظات :</strong><span style={{opacity:'0'}}>s</span> {order.notes}</p>}
-                            <p><strong>المنتجات :</strong></p>
+
+                            {/* Order Info */}
+                            <p><strong>الهاتف :</strong> {order.phoneNumber}</p>
+                            <p><strong>المنطقة :</strong> {order.region} - {order.city}</p>
+                            <p><strong>السعر :</strong> {order.price}₪</p>
+                            <p><strong>التوصيل :</strong> {order.deliveryPrice}₪</p>
+
+                            {order.notes && (
+                                <p><strong>ملاحظات :</strong> {order.notes}</p>
+                            )}
+
+                            {/* Products */}
+                            <p className="mt-2"><strong>المنتجات :</strong></p>
                             <ul className="list-disc pl-5">
                               {order?.products?.map((p, i) => (
-                                  <li key={i}> PID: {p.productId} - Amount:{p.quantity} </li>
+                                  <li key={i}>
+                                    PID: {p.productId} - Amount: {p.quantity}
+                                  </li>
                               ))}
                             </ul>
+
+                            {/* Admin Actions */}
+                            <div className="flex items-center justify-between mt-4">
+                              {/* Modern Checkbox */}
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    checked={order.status !== "ordered"}
+                                    disabled={order.status !== "ordered"}
+                                    onCheckedChange={() => handleStatusChange(order._id)}
+                                />
+                                <label className="text-sm font-medium leading-none cursor-pointer">
+                                  تحديد الطلب كشحن
+                                </label>
+                              </div>
+
+                              {/* Delete Button */}
+                              <button
+                                  onClick={() => handleDelete(order._id)}
+                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition"
+                              >
+                                حذف الطلب
+                              </button>
+                            </div>
                           </div>
                       ))}
                     </div>

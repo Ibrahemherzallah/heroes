@@ -8,6 +8,7 @@ import categoryRoutes from "./routes/category.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import {fileURLToPath} from "url";
 import path from "path";
+import "./cron/deliveryCron.js";
 
 const app = express();
 const PORT = process.env.PORT || 4040;
