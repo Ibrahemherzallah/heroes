@@ -14,40 +14,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-
-  const handleCheckout = async () => {
-
-    if (cartItems.length === 0) {
-      toast({
-        title: "السلة فارغة",
-        description: "يرجى إضافة منتجات قبل إتمام الطلب",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsCheckingOut(true);
-
-    setTimeout(() => {
-      toast({
-        title: "تم إرسال الطلب",
-        description: "سيتم التواصل معك قريباً لتأكيد الطلب",
-      });
-      clearCart();
-      setIsCheckingOut(false);
-      onClose();
-    }, 2000);
-
-  };
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isWholesaler = user?.role === "wholesaler";
 
   if (!isOpen) return null;
 
   return (
       <>
-        <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-50"
-            onClick={onClose}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onClose}/>
 
         <div className="fixed left-0 top-0 h-full w-full max-w-md bg-white z-50 transform transition-transform duration-300 shadow-xl">
           <div className="flex items-center justify-between p-4 border-b">
@@ -65,22 +39,25 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             ) : (
                 <div className="space-y-4">
                   {cartItems.map((item) => {
-                    const displayPrice = item.isOnSale && item.salePrice ? item.salePrice : item.customerPrice;
-
+                    const displayPrice = isWholesaler ? item.wholesalerPrice : item.isOnSale && item.salePrice ? item.salePrice : item.customerPrice;
+                    const oldPrice = isWholesaler ? item.customerPrice : item.isOnSale && item.salePrice ? item.customerPrice : null;
                     return (
                         <div key={item.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                          <img
-                              src={item.image[0]}
-                              alt={item.productName}
-                              className="w-16 h-16 object-cover rounded"
-                          />
+                          <img src={item.image[0]} alt={item.productName} className="w-16 h-16 object-cover rounded"/>
 
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium truncate text-sm mb-1">{item.productName}</h3>
-                            <p className="text-heroes-red font-semibold text-sm">
-                              {displayPrice.toFixed(2)}₪
-                            </p>
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-l font-bold text-heroes-red">
+                                {displayPrice?.toFixed(2)} ₪
+                              </span>
 
+                              {oldPrice && (
+                                  <span className="text-xs text-gray-500 line-through">
+                                    {oldPrice.toFixed(2)} ₪
+                                  </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-2">
                               <Button
                                   variant="outline"

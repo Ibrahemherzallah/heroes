@@ -14,6 +14,8 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorite();
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isWholesaler = user?.role === "wholesaler";
 
   console.log("The product is : ",  product)
   const handleAddToCart = () => {
@@ -39,17 +41,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       addToFavorites(product);
     }
   };
-  const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.customerPrice;
+  // const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.customerPrice;
+  // Determine the price to display
+  const displayPrice = isWholesaler
+      ? product.wholesalerPrice
+      : product.isOnSale && product.salePrice
+          ? product.salePrice
+          : product.customerPrice;
+
+  const oldPrice = isWholesaler
+      ? product.customerPrice
+      : product.isOnSale && product.salePrice
+          ? product.customerPrice
+          : null;
   return (
     <Card className="group hover:shadow-lg transition-shadow duration-300 animate-fade-in">
       <CardContent className="p-4">
         <Link to={`/product/${product._id}`}>
           <div className="aspect-square relative mb-4 overflow-hidden rounded-lg bg-gray-100 cursor-pointer">
-            <img
-                src={product.image}
-                alt={product.productName}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+            <img src={product.image} alt={product.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
 
             {/* ❤️ Favorite Icon */}
             <button onClick={(e) => {e.preventDefault();handleToggleFavorite();}} className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md hover:scale-110 transition">
@@ -70,29 +80,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </Link>
 
         <Link to={`/product/${product.id}`}>
-          <h3
-              className="font-semibold text-lg mb-2 hover:text-heroes-red transition-colors cursor-pointer truncate"
-              title={product.productName} // shows full text on hover
-          >
+          <h3 className="font-semibold text-lg mb-2 hover:text-heroes-red transition-colors cursor-pointer truncate" title={product.productName} >
             {product.productName}
           </h3>
         </Link>
 
-        <p
-            className="text-gray-600 text-sm mb-3 truncate min-h-[20px]"
-            title={product.description || ''}
-        >
+        <p className="text-gray-600 text-sm mb-3 truncate min-h-[20px]" title={product.description || ''}>
           {product.description || '\u00A0'}
         </p>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xl font-bold text-heroes-red">
             {displayPrice?.toFixed(2)} ₪
           </span>
-          
-          {product.isOnSale && product.salePrice && (
-            <span className="text-sm text-gray-500 line-through">
-              {product?.customerPrice?.toFixed(2)} ₪
-            </span>
+
+          {oldPrice && (
+              <span className="text-sm text-gray-500 line-through">
+                {oldPrice.toFixed(2)} ₪
+              </span>
           )}
         </div>
       </CardContent>

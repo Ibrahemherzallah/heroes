@@ -170,3 +170,127 @@ export const changePassword = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({ role: { $ne: "admin" } });
+
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+export const createWholesaler = async (req, res) => {
+    try {
+        const { userName, phone, password } = req.body;
+
+        const normalizedPhone = phone.trim();
+
+        const existingUser = await User.findOne({ phone: normalizedPhone });
+
+        if (existingUser) {
+            return res.status(400).json({
+                message: "رقم الهاتف مستخدم بالفعل",
+            });
+        }
+
+        const user = new User({
+            userName,
+            phone: normalizedPhone,
+            password,
+            role: "wholesaler",
+        });
+
+        await user.save();
+
+        res.status(201).json(user);
+
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({
+                message: "رقم الهاتف مستخدم بالفعل",
+            });
+        }
+
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// controllers/userController.js
+
+export const updateWholesaler = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userName, phone, password, dob } = req.body;
+
+        const wholesaler = await User.findById(id);
+
+        if (!wholesaler || wholesaler.role !== "wholesaler") {
+            return res.status(404).json({
+                message: "تاجر الجملة غير موجود",
+            });
+        }
+
+        // Normalize phone
+        const normalizedPhone = phone?.trim();
+
+        // Check if phone already exists (for another user)
+        if (normalizedPhone && normalizedPhone !== wholesaler.phone) {
+            const existingUser = await User.findOne({
+                phone: normalizedPhone,
+                _id: { $ne: id },
+            });
+
+            if (existingUser) {
+                return res.status(400).json({
+                    message: "رقم الهاتف مستخدم بالفعل",
+                });
+            }
+
+            wholesaler.phone = normalizedPhone;
+        }
+
+        if (userName) wholesaler.userName = userName;
+        if (dob) wholesaler.dob = dob;
+
+        // Only update password if provided
+        if (password && password.trim() !== "") {
+            wholesaler.password = password; // assuming hashing middleware exists
+        }
+
+        await wholesaler.save();
+
+        res.status(200).json({
+            message: "تم تحديث تاجر الجملة بنجاح",
+            wholesaler,
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+export const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Prevent deleting admin
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: "المستخدم غير موجود" });
+        }
+
+        if (user.role === "admin") {
+            return res.status(403).json({ message: "لا يمكن حذف الأدمن" });
+        }
+
+        await User.findByIdAndDelete(id);
+
+        res.json({ message: "تم حذف المستخدم بنجاح" });
+
+    } catch (error) {
+        res.status(500).json({ message: "Server Error" });
+    }
+};

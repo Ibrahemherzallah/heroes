@@ -75,3 +75,24 @@ export const getCategoryIcon = (name: string) => {
             return Box;
     }
 };
+
+export const getCategoryDescription = (name: string) => {
+    const category = name.toLowerCase().trim();
+
+    switch (category) {
+        case "رسيفرات":
+            return "جميع أنواع الرسيفرات بأحدث التقنيات";
+
+        case "كاميرات انترنت نظام ip":
+            return "كاميرات مراقبة ذكية عالية الدقة";
+
+        case "كاميرات المراقبة analog":
+            return "كاميرات تقليدية بجودة ممتازة";
+
+        case "إشتراكات":
+            return "أفضل العروض والاشتراكات الرقمية";
+
+        default:
+            return "أفضل المنتجات بأفضل الأسعار";
+    }
+};

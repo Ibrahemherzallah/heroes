@@ -40,7 +40,8 @@ interface Order {
 const Profile = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<User | null>(null);
-
+    const userr = JSON.parse(localStorage.getItem("user") || "{}");
+    const isWholesaler = userr?.role === "wholesaler";
     // personal info form
     const [nameInput, setNameInput] = useState("");
     const [dobInput, setDobInput] = useState("");
@@ -228,9 +229,13 @@ const Profile = () => {
                 {/* tabs bar */}
                 <Tabs defaultValue="info" className="w-full">
                     <TabsList className="w-full bg-transparent justify-start gap-2 mb-6">
-                        <TabsTrigger value="points" className="px-5 py-2 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                            نقاط الولاء
-                        </TabsTrigger>
+                        {
+                            !isWholesaler && (
+                                <TabsTrigger value="points" className="px-5 py-2 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                    نقاط الولاء
+                                </TabsTrigger>
+                            )
+                        }
                         <TabsTrigger value="orders" className="px-5 py-2 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
                             طلباتي
                         </TabsTrigger>
@@ -462,7 +467,9 @@ const Profile = () => {
                     </TabsContent>
 
                     {/* TAB: Loyalty points */}
-                    <TabsContent value="points">
+                    {
+                        !isWholesaler && (
+                            <TabsContent value="points">
                         <div className="bg-white rounded-3xl shadow-sm p-6 space-y-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
@@ -527,6 +534,8 @@ const Profile = () => {
                             </p>
                         </div>
                     </TabsContent>
+                        )
+                    }
                 </Tabs>
 
                 <div className="mt-6 text-center text-xs text-gray-500">

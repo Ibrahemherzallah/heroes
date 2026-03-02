@@ -33,6 +33,8 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isWholesaler = user?.role === "wholesaler";
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     const stored = localStorage.getItem("cartItems");
     return stored ? JSON.parse(stored) : [];
@@ -78,7 +80,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => {
-      const price = item.isOnSale && item.salePrice ? item.salePrice : item.customerPrice;
+      const price = isWholesaler ? item.wholesalerPrice : item.isOnSale && item.salePrice ? item.salePrice : item.customerPrice;
       return total + (price * item.quantity);
     }, 0);
   };
