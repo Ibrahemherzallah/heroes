@@ -37,6 +37,10 @@ const orderSchema = new mongoose.Schema({
     deliveredAt: {
         type: Date,
     },
+    source: {
+        type: String,
+        enum: ['زائر', 'تاجر', 'زبون', 'ادمن'],
+    },
     products: [
         {
             productId: String,

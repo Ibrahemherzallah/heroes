@@ -5,7 +5,7 @@ import ProductGrid from '@/components/ProductGrid';
 import { Product } from '@/contexts/CartContext';
 import { FaFacebook, FaTiktok, FaWhatsapp } from 'react-icons/fa';
 import { FaHeadphones } from "react-icons/fa";
-import { getCategoryIcon } from "@/utils/categoryIcons.tsx";
+import {getCategoryDescription, getCategoryIcon} from "@/utils/categoryIcons.tsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const Index = () => {
@@ -14,7 +14,7 @@ const Index = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-  const scrollAmount = 340;
+  const scrollAmount = 455;
   const scrollRef = useRef<HTMLDivElement>(null);
 
     const scrollLeft = () => {
@@ -104,18 +104,12 @@ const Index = () => {
           </h2>
 
           {/* Left Button */}
-          <button
-              onClick={scrollLeft}
-              className="absolute left-0 top-[60%] -translate-y-1/2 bg-white shadow-md p-3 rounded-full z-10 hover:bg-gray-100"
-          >
+          <button onClick={scrollLeft} className="absolute left-0 top-[60%] -translate-y-1/2 bg-white shadow-md p-3 rounded-full z-10 hover:bg-gray-100">
             <ChevronLeft size={22} />
           </button>
 
           {/* Right Button */}
-          <button
-              onClick={scrollRight}
-              className="absolute right-0 top-[60%] -translate-y-1/2 bg-white shadow-md p-3 rounded-full z-10 hover:bg-gray-100"
-          >
+          <button onClick={scrollRight} className="absolute right-0 top-[60%] -translate-y-1/2 bg-white shadow-md p-3 rounded-full z-10 hover:bg-gray-100">
             <ChevronRight size={22} />
           </button>
 
@@ -123,17 +117,32 @@ const Index = () => {
           <div ref={scrollRef} className="flex gap-6 overflow-x-auto scroll-smooth no-scrollbar">
             {categories.map((category: any) => {
               const Icon = getCategoryIcon(category.name);
+              const description =
+                  category.description || getCategoryDescription(category.name);
 
               return (
-                  <Link to={`/products?category=${category._id}`}>
-                    <div key={category._id}
-                         className="flex-shrink-0 w-80 h-52 bg-[#ebf9eb] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ease-in-out hover:bg-[#ebf4eb] hover:shadow-[0_10px_20px_rgba(0,0,0,0.08)] hover:-translate-y-1"                  >
-                      <div className="w-20 h-20 bg-heroes-blue rounded-full flex items-center justify-center text-white mb-4">
-                        <Icon size={34} />
+                  <Link key={category._id} to={`/products?category=${category._id}`}>
+                    <div
+                        className="flex-shrink-0 h-56 bg-[#ebf9eb] rounded-2xl
+                        flex flex-col items-center justify-center
+                        cursor-pointer transition-all duration-300 ease-in-out
+                        hover:bg-[#ebf4eb] hover:shadow-[0_10px_20px_rgba(0,0,0,0.08)]
+                        hover:-translate-y-1"
+                        style={{width:'27rem'}}
+                    >
+                      {/* Icon */}
+                      <div className="w-16 h-16 bg-heroes-blue rounded-full flex items-center justify-center text-white mb-4">
+                        <Icon size={24} />
                       </div>
 
-                      <p className="text-base font-semibold text-center px-2">
+                      {/* Title */}
+                      <p className="text-lg font-semibold text-center px-4 mb-2">
                         {category.name}
+                      </p>
+
+                      {/* Description */}
+                      <p className="text-sm text-gray-600 text-center px-6 leading-relaxed">
+                        {description}
                       </p>
                     </div>
                   </Link>

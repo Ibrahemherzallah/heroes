@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export const createOrder = async (req, res) => {
     try {
-        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes,} = req.body;
+        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes, source} = req.body;
 
         if (!fullName || !phoneNumber || !region || !city || typeof price !== "number" || typeof deliveryPrice !== "number" || typeof numOfItems !== "number" || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({ error: "Missing or invalid required fields" });
@@ -69,6 +69,7 @@ export const createOrder = async (req, res) => {
             price,
             deliveryPrice,
             numOfItems,
+            source,
             products: formattedProducts,
             notes,
         });

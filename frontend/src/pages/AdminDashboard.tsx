@@ -16,6 +16,8 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Switch } from "@/components/ui/switch";
 import axios from "axios";
 import { Checkbox } from "@/components/ui/checkbox";
+import WholesalerForm from "@/components/WholesalerForm.tsx";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table";
 
 interface Order {
   _id: string;
@@ -45,7 +47,14 @@ const AdminDashboard = () => {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [activeTab,setActiveTab] = useState('products')
+  const [activeUsersTab,setActiveUsersTab] = useState('products')
   const [orders, setOrders] = useState<Order[]>([]);
+  const [normalUsers, setNormalUsers] = useState([]);
+  const [wholesalers, setWholesalers] = useState([]);
+  const [showWholesalerModal, setShowWholesalerModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [loadingDelete, setLoadingDelete] = useState<string | null>(null);
+  const [editingWholesaler, setEditingWholesaler] = useState(null);
 
   const token = localStorage.getItem('token');
 
@@ -59,21 +68,23 @@ const AdminDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_ENV}/api/category`);
-        if (!res.ok) throw new Error('فشل تحميل الفئات');
+  const fetchUsers = async () => {
+    const res = await fetch(`${import.meta.env.VITE_ENV}/api/auth/users`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-        const data = await res.json();
-        setCategories(data);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const data = await res.json();
+
+    setNormalUsers(data.filter((u) => u.role === "user"));
+    setWholesalers(data.filter((u) => u.role === "wholesaler"));
+  };
+
+
+  useEffect(() => {
+
+
     if(activeTab === 'products') {
       const fetchProducts = async () => {
         try {
@@ -91,10 +102,29 @@ const AdminDashboard = () => {
       };
       fetchProducts()
     }
+    if(activeTab === 'categories') {
+      const fetchCategories = async () => {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_ENV}/api/category`);
+          if (!res.ok) throw new Error('فشل تحميل الفئات');
+
+          const data = await res.json();
+          setCategories(data);
+        } catch (err: any) {
+          console.error(err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCategories()
+    }
     if(activeTab === 'orders') {
       fetchOrders();
     }
-    fetchCategories();
+    if(activeTab === 'users') {
+      fetchUsers();
+    }
   }, [activeTab]);
 
   const handleLogout = () => {
@@ -337,6 +367,47 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAddWholesaler = async (data) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_ENV}/api/auth/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...data,
+          role: "wholesaler",
+        }),
+      });
+
+      const result = await res.json(); // 🔥 read response body
+
+      if (!res.ok) {
+        toast({
+          title: "خطأ",
+          description: result.message || "حدث خطأ أثناء إضافة التاجر",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description: result.message || "تم إضافة تاجر الجملة",
+      });
+
+      setShowWholesalerModal(false);
+      fetchUsers();
+
+    } catch (error) {
+      toast({
+        title: "خطأ في الاتصال",
+        description: "تعذر الاتصال بالخادم",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("هل أنت متأكد من حذف الطلب؟")) return;
@@ -358,6 +429,114 @@ const AdminDashboard = () => {
       console.error(error);
     }
   };
+
+  const deleteUser = async (id: string) => {
+    const confirmDelete = window.confirm("هل أنت متأكد من حذف المستخدم؟");
+
+    if (!confirmDelete) return;
+
+    try {
+      setLoadingDelete(id);
+
+      const res = await fetch(
+          `${import.meta.env.VITE_ENV}/api/auth/users/${id}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({
+          title: "خطأ",
+          description: data.message || "فشل حذف المستخدم",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم حذف المستخدم",
+      });
+
+      fetchUsers();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ غير متوقع",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDelete(null);
+    }
+  };
+
+  const filteredNormalUsers = normalUsers.filter((user) =>
+      user.userName?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredWholesalers = wholesalers.filter((user) =>
+      user.userName?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleEditWholesaler = (user) => {
+    setEditingWholesaler(user);
+    setShowWholesalerModal(true);
+  };
+
+  const handleUpdateWholesaler = async (data) => {
+    try {
+      const res = await fetch(
+          `${import.meta.env.VITE_ENV}/api/auth/users/${data.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              userName: data.userName,
+              phone: data.phone,
+              password: data.password,
+              dob: data.dob,
+            }),
+          }
+      );
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast({
+          title: "خطأ",
+          description: result.message || "حدث خطأ أثناء التحديث",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description: result.message || "تم تحديث التاجر",
+      });
+
+      setShowWholesalerModal(false);
+      setEditingWholesaler(null);
+      fetchUsers();
+
+    } catch (error) {
+      toast({
+        title: "خطأ في الاتصال",
+        description: "تعذر الاتصال بالخادم",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -386,10 +565,11 @@ const AdminDashboard = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="products" onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="products">إدارة المنتجات</TabsTrigger>
             <TabsTrigger value="categories">إدارة الفئات</TabsTrigger>
             <TabsTrigger value="orders">الطلبات</TabsTrigger>
+            <TabsTrigger value="users">المستخدمين</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products" className="space-y-6">
@@ -615,6 +795,7 @@ const AdminDashboard = () => {
                             <p><strong>المنطقة :</strong> {order.region} - {order.city}</p>
                             <p><strong>السعر :</strong> {order.price}₪</p>
                             <p><strong>التوصيل :</strong> {order.deliveryPrice}₪</p>
+                            <p><strong>المصدر :</strong> {order.source}₪</p>
 
                             {order.notes && (
                                 <p><strong>ملاحظات :</strong> {order.notes}</p>
@@ -659,6 +840,141 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <Card>
+              <CardContent className="pt-6 space-y-6">
+
+                <Tabs defaultValue="normalUsers" onValueChange={setActiveUsersTab} className="space-y-6">
+
+                  {/* Tabs */}
+                  <TabsList>
+                    <TabsTrigger value="normalUsers">زبائن</TabsTrigger>
+                    <TabsTrigger value="wholesalers">تجار</TabsTrigger>
+                  </TabsList>
+
+                  {/* Search */}
+                  <div className={'flex justify-between'}>
+                    <Input
+                        placeholder="Search users..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="max-w-md"
+                    />
+                    { activeUsersTab === 'wholesalers' && (
+                        <Button className="bg-heroes-red hover:bg-heroes-red/90" onClick={() => setShowWholesalerModal(true)}>
+                          إضافة تاجر جملة
+                        </Button>
+                    )}
+
+                  </div>
+
+                  {/* ================= USERS TABLE ================= */}
+                  <TabsContent value="normalUsers">
+                    <div className="rounded-xl border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Date of Birth</TableHead>
+                            <TableHead>Total Orders</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+
+                        <TableBody>
+                          {filteredNormalUsers.map((user) => (
+                              <TableRow key={user._id}>
+                                <TableCell className="font-medium">
+                                  {user.userName}
+                                </TableCell>
+                                <TableCell>{user.phone}</TableCell>
+                                <TableCell>{user.dob || "-"}</TableCell>
+                                <TableCell>{user.orderHistory.length || 0}</TableCell>
+
+                                <TableCell>
+                                  <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                                    Active
+                                  </span>
+                                </TableCell>
+
+                                <TableCell className="text-right">
+                                  <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      className="ml-2"
+                                      onClick={() => deleteUser(user._id)}
+                                  >
+                                    Delete
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </TabsContent>
+
+                  {/* ================= WHOLESALERS TABLE ================= */}
+                  <TabsContent value="wholesalers">
+                    <div className="rounded-xl border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Date of Birth</TableHead>
+                            <TableHead>Total Orders</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+
+                        <TableBody>
+                          {filteredWholesalers.map((user) => (
+                              <TableRow key={user._id}>
+                                <TableCell className="font-medium">
+                                  {user.userName}
+                                </TableCell>
+                                <TableCell>{user.phone}</TableCell>
+                                <TableCell>{user.dob || "-"}</TableCell>
+                                <TableCell>{user.orderHistory.length || 0}</TableCell>
+                                <TableCell>
+                                  <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                                    Active
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEditWholesaler(user)}
+                                  >
+                                    Edit
+                                  </Button>
+
+                                  <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      className="ml-2"
+                                      onClick={() => deleteUser(user._id)}
+                                  >
+                                    Delete
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </TabsContent>
+
+                </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -675,6 +991,29 @@ const AdminDashboard = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Add Wholesaler Dialog */}
+      <Dialog open={showWholesalerModal} onOpenChange={setShowWholesalerModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle style={{textAlign:'start', marginBottom:'1rem'}}>
+              {editingWholesaler ? "تعديل تاجر جملة" : "إضافة تاجر جملة"}
+            </DialogTitle>
+          </DialogHeader>
+          <WholesalerForm
+              user={editingWholesaler}
+              defaultRole="wholesaler"
+              onSave={editingWholesaler ? handleUpdateWholesaler : handleAddWholesaler}
+              onCancel={() => {
+                setShowWholesalerModal(false);
+                setEditingWholesaler(null);
+              }}
+          />
+        </DialogContent>
+      </Dialog>
+
+
+
 
       {/* Edit Product Dialog */}
       <Dialog open={!!editingProduct} onOpenChange={() =>{setShowProductForm(false); setEditingProduct(null)}}>

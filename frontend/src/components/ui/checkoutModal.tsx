@@ -34,6 +34,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     const selectedRegion = deliveryRegions.find(region => region.name === formData.region);
     const deliveryPrice = selectedRegion ? selectedRegion.price : 0;
     const totalPrice = getTotalPrice() + deliveryPrice;
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const isWholesaler = user?.role === "wholesaler"
+    const isUser = user?.role === "user"
 
     useEffect(() => {
         if (!isOpen) return;
@@ -76,6 +79,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             notes: formData.notes,
             price: totalPrice,
             deliveryPrice: deliveryPrice,
+            source: !user ? "زائر" : isWholesaler ? "تاجر" : isUser ? "زبون" : "ادمن",
             numOfItems,
             products: cartItems.map(item => ({
                 id: item._id,
