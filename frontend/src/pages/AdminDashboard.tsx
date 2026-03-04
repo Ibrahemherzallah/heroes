@@ -83,40 +83,40 @@ const AdminDashboard = () => {
 
 
   useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_ENV}/api/product`);
+        if (!res.ok) throw new Error('فشل تحميل الفئات');
 
+        const data = await res.json();
+        setProducts(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_ENV}/api/category`);
+        if (!res.ok) throw new Error('فشل تحميل الفئات');
 
+        const data = await res.json();
+        setCategories(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
     if(activeTab === 'products') {
-      const fetchProducts = async () => {
-        try {
-          const res = await fetch(`${import.meta.env.VITE_ENV}/api/product`);
-          if (!res.ok) throw new Error('فشل تحميل الفئات');
 
-          const data = await res.json();
-          setProducts(data);
-        } catch (err: any) {
-          console.error(err);
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
       fetchProducts()
     }
     if(activeTab === 'categories') {
-      const fetchCategories = async () => {
-        try {
-          const res = await fetch(`${import.meta.env.VITE_ENV}/api/category`);
-          if (!res.ok) throw new Error('فشل تحميل الفئات');
 
-          const data = await res.json();
-          setCategories(data);
-        } catch (err: any) {
-          console.error(err);
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
       fetchCategories()
     }
     if(activeTab === 'orders') {
@@ -125,6 +125,7 @@ const AdminDashboard = () => {
     if(activeTab === 'users') {
       fetchUsers();
     }
+    fetchCategories()
   }, [activeTab]);
 
   const handleLogout = () => {

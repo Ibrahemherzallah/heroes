@@ -41,6 +41,14 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['زائر', 'تاجر', 'زبون', 'ادمن'],
     },
+    orderNumber: {
+        type: Number,
+        required: false,
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+    },
     products: [
         {
             productId: String,

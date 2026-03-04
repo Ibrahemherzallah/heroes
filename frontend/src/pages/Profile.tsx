@@ -42,6 +42,7 @@ const Profile = () => {
     const [user, setUser] = useState<User | null>(null);
     const userr = JSON.parse(localStorage.getItem("user") || "{}");
     const isWholesaler = userr?.role === "wholesaler";
+    const points = userr?.points;
     // personal info form
     const [nameInput, setNameInput] = useState("");
     const [dobInput, setDobInput] = useState("");
@@ -178,16 +179,6 @@ const Profile = () => {
         return order.status;
     };
 
-    // points: 1 point / 100 ILS for shipped & delivered orders
-    const points = useMemo(() => {
-        if (!orders.length) return 0;
-        const eligible = orders.filter((o) => {
-            const st = getDisplayStatus(o);
-            return st === "shipped" || st === "delivered";
-        });
-        const total = eligible.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
-        return Math.floor(total / 100);
-    }, [orders]);
 
     const currentDiscount = useMemo(() => {
         if (points >= 30) return 30;
@@ -394,30 +385,36 @@ const Profile = () => {
 
                                         return (
                                             <div key={order._id} className="border border-gray-100 rounded-2xl p-4">
-                                                {/* ===== Header ===== */}
+                                                {/* ===== العنوان ===== */}
                                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2">
                                                             <Package className="w-4 h-4 text-gray-500" />
                                                             <span className="text-sm font-semibold">
-                                                              Order #{order._id.slice(-6)}
+                                                                طلب رقم #{order.orderNumber ?? order._id.slice(-6)}
                                                             </span>
                                                         </div>
 
                                                         <p className="text-xs text-gray-500">
-                                                            Date:{" "}
+                                                            التاريخ:{" "}
                                                             {new Date(order.createdAt).toLocaleString("ar-EG")}
                                                         </p>
 
                                                         <p className="text-xs text-gray-500">
-                                                            Total:{" "}{(order.price || calculatedTotal)?.toFixed(2)} ₪
+                                                            المجموع:{" "}
+                                                            {(order.price || calculatedTotal)?.toFixed(2)} ₪
+                                                        </p>
+
+                                                        <p className="text-xs text-gray-500">
+                                                            سعر التوصيل:{" "}
+                                                            {(order.deliveryPrice || calculatedTotal)?.toFixed(2)} ₪
                                                         </p>
                                                     </div>
 
                                                     <div className="flex flex-col items-start md:items-end gap-2">
-                                                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
                                                             {statusLabel}
-                                                          </span>
+                                                        </span>
 
                                                         {order.status === "shipped" &&
                                                             status === "shipped" && (
@@ -428,7 +425,7 @@ const Profile = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* ===== Products List ===== */}
+                                                {/* ===== قائمة المنتجات ===== */}
                                                 <div className="space-y-3">
                                                     {order.products?.map((item, index) => (
                                                         <div key={index} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl">
@@ -439,11 +436,11 @@ const Profile = () => {
                                                                 </p>
 
                                                                 <p className="text-xs text-gray-500">
-                                                                    Quantity: {item.quantity}
+                                                                    الكمية: {item.quantity}
                                                                 </p>
 
                                                                 <p className="text-xs text-gray-500">
-                                                                    Price:{" "}
+                                                                    السعر:{" "}
                                                                     {item.price?.toFixed(2)} ₪
                                                                 </p>
                                                             </div>
@@ -492,7 +489,7 @@ const Profile = () => {
                                     <span className="font-semibold">الخصم المتاح:</span>{" "}
                                     {currentDiscount > 0 ? (
                                         <span className="text-[#7a4a23] font-bold">
-                                      {currentDiscount}%
+                                      %{currentDiscount}
                                     </span>
                                                     ) : (
                                                         <span className="text-gray-600">

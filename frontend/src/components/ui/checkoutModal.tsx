@@ -29,12 +29,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
         notes: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { getTotalPrice, clearCart, cartItems } = useCart();
+    const {getTotalPrice, getFinalPrice, getDiscountAmount, selectedPointsDiscount,setSelectedPointsDiscount, clearCart, cartItems} = useCart();
     const token = localStorage.getItem('token');
     const selectedRegion = deliveryRegions.find(region => region.name === formData.region);
     const deliveryPrice = selectedRegion ? selectedRegion.price : 0;
-    const totalPrice = getTotalPrice() + deliveryPrice;
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const totalPrice = getFinalPrice() + deliveryPrice;
+    const storedUser = localStorage.getItem("user");
+    const user = storedUser ? JSON.parse(storedUser) : null;
     const isWholesaler = user?.role === "wholesaler"
     const isUser = user?.role === "user"
 
@@ -69,7 +70,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
         setIsSubmitting(true);
 
         const numOfItems = cartItems.reduce((total, item) => total + item.quantity, 0);
-        const totalPrice = getTotalPrice();
+        const totalPrice = getFinalPrice();
 
         const orderPayload = {
             fullName: formData.fullName,
@@ -81,12 +82,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             deliveryPrice: deliveryPrice,
             source: !user ? "زائر" : isWholesaler ? "تاجر" : isUser ? "زبون" : "ادمن",
             numOfItems,
+            usedPoints: selectedPointsDiscount,
             products: cartItems.map(item => ({
                 id: item._id,
                 productId: item.id,
                 image: item.image[0],
                 name: item.productName,
-                price: item.customerPrice,
+                price: isWholesaler ? item.wholesalerPrice : item.isOnSale && item.salePrice ? item.salePrice : item.customerPrice,
                 quantity: item.quantity
             }))
         };
@@ -119,12 +121,16 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                     type: 'Heroes Store' // optional: indicate the source of the order
                 })
             });
+            const data = await response.json();
 
+            if (data.user) {
+                localStorage.setItem("user", JSON.stringify(data.user));
+            }
             toast({
                 title: "تم إرسال الطلب بنجاح",
                 description: "سيتم التواصل معك قريباً لتأكيد الطلب"
             });
-
+            setSelectedPointsDiscount(null);
             clearCart();
             setFormData({fullName: '', phoneNumber: '', region: '', city: '', notes: ''});
             onClose();
@@ -197,7 +203,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                         <Label htmlFor="notes">ملاحظات</Label>
                         <Textarea id="notes" value={formData.notes} onChange={(e) => handleInputChange('notes', e.target.value)} placeholder="أي ملاحظات إضافية (اختياري)" rows={3}/>
                     </div>
-
+                    {selectedPointsDiscount && (
+                        <div className="flex justify-between items-center mb-2 text-green-600">
+                            <span>خصم النقاط ({selectedPointsDiscount}%):</span>
+                            <span>-{getDiscountAmount().toFixed(2)} ₪</span>
+                        </div>
+                    )}
                     <div className="border-t pt-4">
                         <div className="flex justify-between items-center mb-2">
                             <span>إجمالي المنتجات:</span>

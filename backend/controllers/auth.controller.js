@@ -50,6 +50,7 @@ export const login = async (req, res) => {
                 role: user.role,
                 isAdmin: user.isAdmin,
                 dob: user.dob,
+                points: user.points
             },
         });
     } catch (err) {
@@ -92,7 +93,8 @@ export const signup = async (req, res) => {
                 isAdmin: newUser.isAdmin,
                 dob: newUser.dob,
                 role: 'user',
-                phone: newUser.phone
+                phone: newUser.phone,
+                points: 0
             }
         });
     } catch (error) {
@@ -216,8 +218,6 @@ export const createWholesaler = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
-
-// controllers/userController.js
 
 export const updateWholesaler = async (req, res) => {
     try {
