@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export const createOrder = async (req, res) => {
     try {
-        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes, source} = req.body;
+        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes, source, usedPoints } = req.body;
 
         if (!fullName || !phoneNumber || !region || !city || typeof price !== "number" || typeof deliveryPrice !== "number" || typeof numOfItems !== "number" || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({ error: "Missing or invalid required fields" });
@@ -19,49 +19,102 @@ export const createOrder = async (req, res) => {
 
         const formattedProducts = [];
 
-        // 🔥 STOCK + SNAPSHOT LOGIC
+        // ===============================
+        // 🔥 STOCK + SNAPSHOT
+        // ===============================
         for (const item of products) {
             if (!item.id || typeof item.quantity !== "number") {
-                return res
-                    .status(400)
-                    .json({ error: "Each product must include id and quantity" });
+                return res.status(400).json({
+                    error: "Each product must include id and quantity",
+                });
             }
 
             const product = await Product.findById(item.id);
             if (!product) {
-                return res
-                    .status(404)
-                    .json({ error: `Product not found: ${item.id}` });
+                return res.status(404).json({
+                    error: `Product not found: ${item.id}`,
+                });
             }
 
-            // 🟢 Stock check (لو المنتج من المخزون)
             if (product.type === "inStore") {
                 if (product.stock < item.quantity) {
                     return res.status(400).json({
-                        error: `Not enough stock for ${product.productName}`,
+                        error: `لا يوجد مخزون كافي للمنتج  ${product.productName}`,
                     });
                 }
 
                 product.stock -= item.quantity;
-
-                if (product.stock === 0) {
-                    product.isSoldOut = true;
-                }
-
+                if (product.stock === 0) product.isSoldOut = true;
                 await product.save();
             }
 
-            // 🟢 خزّن snapshot
             formattedProducts.push({
                 productId: product.id,
                 name: product.productName,
                 image: product.image?.[0] || "",
-                price: product.customerPrice,
+                price: item.price,
                 quantity: item.quantity,
             });
         }
-        // ✅ Create order
-        const newOrder = new Order({
+
+        // ===============================
+        // 🎁 POINTS LOGIC (ONLY ONCE)
+        // ===============================
+
+        let finalUsedPoints = 0;
+        let earnedPoints = 0;
+        let updatedUser = null;
+
+        const totalAmount = price + deliveryPrice;
+
+        if (req.user && req.user.role === "user") {
+
+            const user = await User.findById(req.user._id);
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+
+            // ✅ Validate discount points
+            if (usedPoints > 0) {
+                if (usedPoints > user.points) {
+                    return res.status(400).json({
+                        error: "Not enough points",
+                    });
+                }
+
+                finalUsedPoints = usedPoints;
+                console.log("finalUsedPoints is : ", finalUsedPoints)
+                user.points -= finalUsedPoints;
+            }
+
+            // ✅ Earn new points after discount
+            const paidAmount = totalAmount - finalUsedPoints;
+            earnedPoints = Math.floor(paidAmount / 100);
+            console.log("earnedPoints is : ", earnedPoints)
+            user.points += earnedPoints;
+
+            updatedUser = await user.save();
+        } else if (req.user && req.user.role === "wholesaler") {
+            const user = await User.findById(req.user._id);
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            updatedUser = await user.save();
+        }
+
+        let orderNumber = null;
+
+        if (req.user) {
+            const userOrdersCount = await Order.countDocuments({
+                userId: req.user._id
+            });
+            orderNumber = userOrdersCount + 1;
+        }
+        // ===============================
+        // ✅ CREATE ORDER
+        // ===============================
+
+        const newOrder = await Order.create({
             fullName,
             phoneNumber,
             region,
@@ -72,25 +125,24 @@ export const createOrder = async (req, res) => {
             source,
             products: formattedProducts,
             notes,
+            usedPoints: finalUsedPoints,
+            earnedPoints,
+            userId: req.user?._id || null,
+            orderNumber
         });
 
-        await newOrder.save();
-
-        // 🎁 Points logic
-        if (req.user) {
-            const totalAmount = price + deliveryPrice;
-            const earnedPoints = Math.floor(totalAmount / 100);
-
-            await User.findByIdAndUpdate(req.user._id, {
-                $push: { orderHistory: newOrder._id },
-                $inc: { points: earnedPoints },
-            });
+        // Push order to user history
+        if (updatedUser) {
+            updatedUser.orderHistory.push(newOrder._id);
+            await updatedUser.save();
         }
 
         res.status(201).json({
             message: "Order created successfully",
             order: newOrder,
+            user: updatedUser   // 🔥 IMPORTANT: return updated user
         });
+
     } catch (error) {
         console.error("Order creation error:", error);
         res.status(500).json({ error: "Internal server error" });

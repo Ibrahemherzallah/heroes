@@ -22,6 +22,10 @@ export interface CartItem extends Product {
 
 interface CartContextType {
   cartItems: CartItem[];
+  selectedPointsDiscount: number | null;
+  setSelectedPointsDiscount: React.Dispatch<React.SetStateAction<number | null>>;
+  getFinalPrice: () => number;
+  getDiscountAmount: () => number;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -39,6 +43,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const stored = localStorage.getItem("cartItems");
     return stored ? JSON.parse(stored) : [];
   });
+  const [selectedPointsDiscount, setSelectedPointsDiscount] = useState<number | null>(null);
 
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
@@ -85,6 +90,19 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, 0);
   };
 
+
+  const getDiscountAmount = () => {
+    if (!selectedPointsDiscount) return 0;
+
+    const total = getTotalPrice();
+    return (total * selectedPointsDiscount) / 100;
+  };
+
+  const getFinalPrice = () => {
+    return getTotalPrice() - getDiscountAmount();
+  };
+
+
   const getTotalItems = () => {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
   };
@@ -97,7 +115,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateQuantity,
         clearCart,
         getTotalPrice,
-        getTotalItems
+        getTotalItems,
+        getFinalPrice,
+        getDiscountAmount,
+        selectedPointsDiscount,
+        setSelectedPointsDiscount,
       }}>
         {children}
       </CartContext.Provider>
