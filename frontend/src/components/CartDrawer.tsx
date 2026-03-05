@@ -15,7 +15,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const [pendingDiscount, setPendingDiscount] = useState<number | null>(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const isWholesaler = user?.role === "wholesaler";
     const isUser = user?.role === "user";
@@ -60,8 +59,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                     ? item.salePrice
                                     : item.customerPrice;
 
-                        const oldPrice =
-                            isWholesaler || item.isOnSale && item.salePrice ? item.customerPrice : null
+                        const oldPrice = isWholesaler || item.isOnSale && item.salePrice ? item.customerPrice : null
 
 
                         return (

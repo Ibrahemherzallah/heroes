@@ -383,6 +383,17 @@ const Profile = () => {
                                             return acc + price * item.quantity;
                                         }, 0);
 
+
+                                        const originalPrice = order.products?.reduce(
+                                            (sum, item) => sum + item.price * item.quantity,
+                                            0
+                                        );
+
+                                        const discountPercent = order.usedPoints || 0;
+                                        const discountValue = originalPrice * (discountPercent / 100);
+                                        const finalPrice = order.price;
+                                        const deliveryPrice = order.deliveryPrice || 0;
+                                        const totalToPay = finalPrice + deliveryPrice;
                                         return (
                                             <div key={order._id} className="border border-gray-100 rounded-2xl p-4">
                                                 {/* ===== العنوان ===== */}
@@ -401,13 +412,26 @@ const Profile = () => {
                                                         </p>
 
                                                         <p className="text-xs text-gray-500">
-                                                            المجموع:{" "}
-                                                            {(order.price || calculatedTotal)?.toFixed(2)} ₪
+                                                            السعر الأصلي: {originalPrice?.toFixed(2)} ₪
                                                         </p>
 
+                                                        {order.usedPoints > 0 && (
+                                                            <>
+                                                                <p className="text-xs text-green-600">
+                                                                    الخصم ({order.usedPoints}%): -{discountValue.toFixed(2)} ₪
+                                                                </p>
+
+                                                                <p className="text-xs text-gray-500 font-semibold">
+                                                                    المجموع بعد الخصم:   {finalPrice?.toFixed(2)} ₪
+                                                                </p>
+                                                            </>
+                                                        )}
+
                                                         <p className="text-xs text-gray-500">
-                                                            سعر التوصيل:{" "}
-                                                            {(order.deliveryPrice || calculatedTotal)?.toFixed(2)} ₪
+                                                            سعر التوصيل: {order.deliveryPrice?.toFixed(2)} ₪
+                                                        </p>
+                                                        <p className="text-sm font-bold text-gray-900">
+                                                            الإجمالي للدفع: {totalToPay?.toFixed(2)} ₪
                                                         </p>
                                                     </div>
 
