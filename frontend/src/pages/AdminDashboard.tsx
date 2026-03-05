@@ -111,21 +111,16 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
-    if(activeTab === 'products') {
-
-      fetchProducts()
-    }
-    if(activeTab === 'categories') {
-
-      fetchCategories()
-    }
+    fetchProducts()
+    fetchCategories()
+  }, []);
+  useEffect(() => {
     if(activeTab === 'orders') {
       fetchOrders();
     }
     if(activeTab === 'users') {
       fetchUsers();
     }
-    fetchCategories()
   }, [activeTab]);
 
   const handleLogout = () => {
@@ -477,13 +472,9 @@ const AdminDashboard = () => {
     }
   };
 
-  const filteredNormalUsers = normalUsers.filter((user) =>
-      user.userName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredNormalUsers = normalUsers.filter((user) => user.userName?.toLowerCase().includes(search.toLowerCase()));
 
-  const filteredWholesalers = wholesalers.filter((user) =>
-      user.userName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredWholesalers = wholesalers.filter((user) => user.userName?.toLowerCase().includes(search.toLowerCase()));
 
   const handleEditWholesaler = (user) => {
     setEditingWholesaler(user);
@@ -535,6 +526,34 @@ const AdminDashboard = () => {
         description: "تعذر الاتصال بالخادم",
         variant: "destructive",
       });
+    }
+  };
+
+
+  const resetPassword = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+          `${import.meta.env.VITE_ENV}/api/auth/reset-password`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ userId }),
+          }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error);
+
+      alert(`كلمة المرور الجديدة: ${data.newPassword}`);
+
+    } catch (error) {
+      alert("فشل في إعادة تعيين كلمة المرور");
     }
   };
 
@@ -752,90 +771,128 @@ const AdminDashboard = () => {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                      {orders.map((order) => (
-                          <div
-                              key={order._id}
-                              className={`border p-4 rounded-lg shadow-sm bg-white transition-all duration-300
-                               ${
-                                  order.status === "shipped"
-                                      ? "opacity-60"
-                                      : order.status === "delivered"
-                                          ? "opacity-40"
-                                          : "opacity-100"
-                              }`}
-                          >
-                            {/* Header */}
-                            <div className="flex justify-between items-center mb-2">
-                              <h3 className="text-lg font-semibold">
-                                {order.fullName}
-                              </h3>
+                      {orders.map((order) => {
 
-                              <div className="flex items-center gap-3">
-                                {/* Status Badge */}
-                                <span
-                                    className={`text-xs px-3 py-1 rounded-full font-medium
+                        const originalPrice = order.products?.reduce(
+                            (sum, item) => sum + item.price * item.quantity,
+                            0
+                        );
+
+                        const discountPercent = order.usedPoints || 0;
+                        const discountValue = originalPrice * (discountPercent / 100);
+
+                        const finalPrice = order.price; // after discount
+                        const deliveryPrice = order.deliveryPrice || 0;
+
+                        const totalToPay = finalPrice + deliveryPrice;
+
+                        return (
+                            <div
+                                key={order._id}
+                                className={`border p-4 rounded-lg shadow-sm bg-white transition-all duration-300
+                               ${
+                                    order.status === "shipped"
+                                        ? "opacity-60"
+                                        : order.status === "delivered"
+                                            ? "opacity-40"
+                                            : "opacity-100"
+                                }`}
+                            >
+                              {/* Header */}
+                              <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-lg font-semibold">
+                                  {order.fullName}
+                                </h3>
+
+                                <div className="flex items-center gap-3">
+                                  {/* Status Badge */}
+                                  <span
+                                      className={`text-xs px-3 py-1 rounded-full font-medium
                                     ${
-                                        order.status === "ordered"
-                                            ? "bg-yellow-100 text-yellow-700"
-                                            : order.status === "shipped"
-                                                ? "bg-blue-100 text-blue-700"
-                                                : "bg-green-100 text-green-700"
-                                    }`}
-                                >
+                                          order.status === "ordered"
+                                              ? "bg-yellow-100 text-yellow-700"
+                                              : order.status === "shipped"
+                                                  ? "bg-blue-100 text-blue-700"
+                                                  : "bg-green-100 text-green-700"
+                                      }`}
+                                  >
                                   {order.status}
                                 </span>
 
-                                <span className="text-sm text-gray-500">
+                                  <span className="text-sm text-gray-500">
                                   {new Date(order.createdAt).toLocaleString()}
                                 </span>
-                              </div>
-                            </div>
-
-                            {/* Order Info */}
-                            <p><strong>الهاتف :</strong> {order.phoneNumber}</p>
-                            <p><strong>المنطقة :</strong> {order.region} - {order.city}</p>
-                            <p><strong>السعر :</strong> {order.price}₪</p>
-                            <p><strong>التوصيل :</strong> {order.deliveryPrice}₪</p>
-                            <p><strong>المصدر :</strong> {order.source}₪</p>
-
-                            {order.notes && (
-                                <p><strong>ملاحظات :</strong> {order.notes}</p>
-                            )}
-
-                            {/* Products */}
-                            <p className="mt-2"><strong>المنتجات :</strong></p>
-                            <ul className="list-disc pl-5">
-                              {order?.products?.map((p, i) => (
-                                  <li key={i}>
-                                    PID: {p.productId} - Amount: {p.quantity}
-                                  </li>
-                              ))}
-                            </ul>
-
-                            {/* Admin Actions */}
-                            <div className="flex items-center justify-between mt-4">
-                              {/* Modern Checkbox */}
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    checked={order.status !== "ordered"}
-                                    disabled={order.status !== "ordered"}
-                                    onCheckedChange={() => handleStatusChange(order._id)}
-                                />
-                                <label className="text-sm font-medium leading-none cursor-pointer">
-                                  تحديد الطلب كشحن
-                                </label>
+                                </div>
                               </div>
 
-                              {/* Delete Button */}
-                              <button
-                                  onClick={() => handleDelete(order._id)}
-                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition"
-                              >
-                                حذف الطلب
-                              </button>
+                              {/* Order Info */}
+                              <p><strong>الهاتف :</strong> {order.phoneNumber}</p>
+                              <p><strong>المنطقة :</strong> {order.region} - {order.city}</p>
+                              <p>
+                                <strong>السعر الأصلي :</strong>{" "}
+                                <span className={order.usedPoints > 0 ? "line-through text-gray-400" : ""}>
+                                  {originalPrice?.toFixed(2)}₪
+                                </span>
+                              </p>
+
+                              {order.usedPoints > 0 && (
+                                  <p className="text-green-600">
+                                    <strong>الخصم ({order.usedPoints}%):</strong> -{discountValue.toFixed(2)}₪
+                                  </p>
+                              )}
+
+                              <p>
+                                <strong>السعر بعد الخصم :</strong> {finalPrice?.toFixed(2)}₪
+                              </p>
+
+                              <p>
+                                <strong>سعر التوصيل :</strong> {deliveryPrice?.toFixed(2)}₪
+                              </p>
+
+                              <p className="font-semibold text-gray-900">
+                                <strong>الإجمالي للدفع :</strong> {totalToPay?.toFixed(2)}₪
+                              </p>
+                              <p><strong>المصدر :</strong> {order.source}₪</p>
+
+                              {order.notes && (
+                                  <p><strong>ملاحظات :</strong> {order.notes}</p>
+                              )}
+
+                              {/* Products */}
+                              <p className="mt-2"><strong>المنتجات :</strong></p>
+                              <ul className="list-disc pl-5">
+                                {order?.products?.map((p, i) => (
+                                    <li key={i}>
+                                      PID: {p.productId} - Amount: {p.quantity} - source: {p.source === "sourced" ? "out store" : p.source === "inStore" ? "in store": null}
+                                    </li>
+                                ))}
+                              </ul>
+
+                              {/* Admin Actions */}
+                              <div className="flex items-center justify-between mt-4">
+                                {/* Modern Checkbox */}
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                      checked={order.status !== "ordered"}
+                                      disabled={order.status !== "ordered"}
+                                      onCheckedChange={() => handleStatusChange(order._id)}
+                                  />
+                                  <label className="text-sm font-medium leading-none cursor-pointer">
+                                    تحديد الطلب كشحن
+                                  </label>
+                                </div>
+
+                                {/* Delete Button */}
+                                <button
+                                    onClick={() => handleDelete(order._id)}
+                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition"
+                                >
+                                  حذف الطلب
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                      ))}
+                        )
+                      })}
                     </div>
                 )}
               </CardContent>
@@ -892,7 +949,9 @@ const AdminDashboard = () => {
                                   {user.userName}
                                 </TableCell>
                                 <TableCell>{user.phone}</TableCell>
-                                <TableCell>{user.dob || "-"}</TableCell>
+                                <TableCell>
+                                  {user.dob ? new Date(user.dob).toLocaleDateString("ar-EG") : "-"}
+                                </TableCell>
                                 <TableCell>{user.orderHistory.length || 0}</TableCell>
 
                                 <TableCell>
@@ -902,12 +961,11 @@ const AdminDashboard = () => {
                                 </TableCell>
 
                                 <TableCell className="text-right">
-                                  <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      className="ml-2"
-                                      onClick={() => deleteUser(user._id)}
-                                  >
+                                  <Button variant="outline" size="sm" onClick={() => resetPassword(user._id)}>
+                                    Reset Password
+                                  </Button>
+
+                                  <Button variant="destructive" size="sm" className="ml-2" onClick={() => deleteUser(user._id)}>
                                     Delete
                                   </Button>
                                 </TableCell>
@@ -940,7 +998,9 @@ const AdminDashboard = () => {
                                   {user.userName}
                                 </TableCell>
                                 <TableCell>{user.phone}</TableCell>
-                                <TableCell>{user.dob || "-"}</TableCell>
+                                <TableCell>
+                                  {user.dob ? new Date(user.dob).toLocaleDateString("ar-EG") : "-"}
+                                </TableCell>
                                 <TableCell>{user.orderHistory.length || 0}</TableCell>
                                 <TableCell>
                                   <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
@@ -948,20 +1008,16 @@ const AdminDashboard = () => {
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleEditWholesaler(user)}
-                                  >
+
+                                  <Button variant="outline" size="sm" onClick={() => handleEditWholesaler(user)}>
                                     Edit
                                   </Button>
 
-                                  <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      className="ml-2"
-                                      onClick={() => deleteUser(user._id)}
-                                  >
+                                  <Button variant="outline" size="sm" className="ml-2" onClick={() => resetPassword(user._id)}>
+                                    Reset Password
+                                  </Button>
+
+                                  <Button variant="destructive" size="sm" className="ml-2" onClick={() => deleteUser(user._id)}>
                                     Delete
                                   </Button>
                                 </TableCell>

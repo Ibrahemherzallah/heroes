@@ -89,7 +89,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                 image: item.image[0],
                 name: item.productName,
                 price: isWholesaler ? item.wholesalerPrice : item.isOnSale && item.salePrice ? item.salePrice : item.customerPrice,
-                quantity: item.quantity
+                quantity: item.quantity,
+                source: item.type
             }))
         };
 
@@ -145,8 +146,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             setIsSubmitting(false);
         }
     };
-
-
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({

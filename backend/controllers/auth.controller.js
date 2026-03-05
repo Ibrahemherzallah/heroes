@@ -294,3 +294,26 @@ export const deleteUser = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
+
+
+export const resetUserPassword = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        const newPassword = Math.random().toString(36).slice(-8);
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await User.findByIdAndUpdate(userId, {
+            password: hashedPassword,
+        });
+
+        res.json({
+            message: "Password reset successfully",
+            newPassword,
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: "Server error" });
+    }
+};

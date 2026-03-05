@@ -49,6 +49,10 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
     },
+    usedPoints: {
+        type: Number,
+        required: false,
+    },
     products: [
         {
             productId: String,
@@ -59,6 +63,7 @@ const orderSchema = new mongoose.Schema({
                 type: Number,
                 required: true,
             },
+            source: String,
         },
     ],
     notes: {

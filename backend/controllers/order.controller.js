@@ -54,6 +54,7 @@ export const createOrder = async (req, res) => {
                 image: product.image?.[0] || "",
                 price: item.price,
                 quantity: item.quantity,
+                source: item.source,
             });
         }
 
