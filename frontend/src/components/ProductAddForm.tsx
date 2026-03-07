@@ -36,6 +36,7 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
   const [productType, setProductType] = useState<'inStore' | 'sourced'>('inStore');
   const [stock, setStock] = useState<number>(0);
   const [wholesalerPrice, setWholesalerPrice] = useState<number>(0);
+  const [originalPrice, setOriginalPrice] = useState<number>(0);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -134,6 +135,7 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
       productName: formData.productName,
       categoryId: formData.categoryId,
       image: formData.image,
+      originalPrice,
       customerPrice: formData.customerPrice,
       salePrice: formData.salePrice,
       isSoldOut: formData.isSoldOut,
@@ -166,7 +168,19 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({ onSave, onCancel, categ
         <label className="block text-sm font-medium mb-2">السعر *</label>
         <Input type="number" step="0.01" value={formData.customerPrice} onChange={(e) => setFormData(prev => ({ ...prev, customerPrice: e.target.value }))} placeholder="0.00" required/>
       </div>
-
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          سعر التكلفة *
+        </label>
+        <Input
+            type="number"
+            step="0.01"
+            value={originalPrice}
+            onChange={(e) => setOriginalPrice(parseFloat(e.target.value))}
+            placeholder="0.00"
+            required
+        />
+      </div>
       <div>
         <label className="block text-sm font-medium mb-2">الفئة *</label>
         <select

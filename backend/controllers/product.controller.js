@@ -10,20 +10,21 @@ export const createProduct = async (req, res) => {
             id,
             categoryId,
             image,
+            originalPrice,
             customerPrice,
-            wholesalerPrice, // new required field
+            wholesalerPrice,
             salePrice,
             isOnSale,
             isSoldOut,
-            stock, // new optional/conditional field
-            type, // "inStore" or "sourced"
+            stock,
+            type,
             description,
             url,
             properties
         } = req.body;
 
         // Validate required fields
-        if (!productName || !id || !categoryId || !image || image.length === 0 || !customerPrice || !wholesalerPrice || !type) {
+        if (!productName || !id || !categoryId || !image || image.length === 0 || !originalPrice || !customerPrice || !wholesalerPrice || !type) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
@@ -42,6 +43,7 @@ export const createProduct = async (req, res) => {
             id,
             categoryId,
             image,
+            originalPrice,
             customerPrice,
             wholesalerPrice,
             salePrice,
@@ -175,6 +177,7 @@ export const updateProduct = async (req, res) => {
             categoryId,
             id,
             images,
+            originalPrice,
             customerPrice,
             wholesalerPrice,
             salePrice,
@@ -187,7 +190,7 @@ export const updateProduct = async (req, res) => {
             properties
         } = req.body;
 
-        if (!productName || !categoryId || !images || images.length === 0 || !customerPrice || !wholesalerPrice || !type) {
+        if (!productName || !categoryId || !images || images.length === 0 || !originalPrice || !customerPrice || !wholesalerPrice || !type) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
@@ -202,6 +205,7 @@ export const updateProduct = async (req, res) => {
                 productName,
                 categoryId,
                 image: images,
+                originalPrice,
                 customerPrice,
                 wholesalerPrice,
                 salePrice,

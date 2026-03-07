@@ -145,6 +145,33 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, cate
         </div>
 
         <div>
+          <label className="block text-sm font-medium mb-2">
+            سعر التكلفة *
+          </label>
+          <Input
+              type="number"
+              step="0.01"
+              value={formData.originalPrice}
+              onChange={(e) => setFormData(prev => ({ ...prev, originalPrice: e.target.value }))}
+              placeholder="0.00"
+              required
+          />
+        </div>
+
+        {/*<div className="md:col-span-2 mb-4">*/}
+        {/*  <label className="block text-sm font-medium mb-2">سعر الجملة *</label>*/}
+        {/*  <Input*/}
+        {/*      type="number"*/}
+        {/*      step="0.01"*/}
+        {/*      value={formData.wholesalerPrice}*/}
+        {/*      onChange={(e) => setFormData(prev => ({ ...prev, wholesalerPrice: e.target.value }))}*/}
+        {/*      placeholder="0.00"*/}
+        {/*      required*/}
+        {/*  />*/}
+        {/*</div>*/}
+
+
+        <div>
           <label className="block text-sm font-medium mb-2">الفئة *</label>
           <select
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
