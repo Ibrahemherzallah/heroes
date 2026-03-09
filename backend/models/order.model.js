@@ -1,58 +1,106 @@
 import mongoose from "mongoose";
-
 const orderSchema = new mongoose.Schema({
-    fullName: {
+
+    orderType: {
         type: String,
-        required: true,
+        enum: ["store", "whatsapp", "loss", "website"],
+        default: "website"
     },
-    phoneNumber: {
-        type: String,
-        required: true,
-        minlength: 10,
-    },
+
     region: {
         type: String,
-        required: true,
+        required: function () {
+            console.log("this.orderType os" , this.orderType)
+            return this.orderType === "whatsapp" || this.orderType === "website";
+        },
     },
+
     city: {
         type: String,
-        required: true,
+        required: function () {
+            return this.orderType === "whatsapp" || this.orderType === "website";
+        },
     },
+
+    fullName: {
+        type: String,
+        required: function () {
+            return this.orderType === "whatsapp" || this.orderType === "website";
+        },
+    },
+
+    phoneNumber: {
+        type: String,
+        minlength: 10,
+        required: function () {
+            return this.orderType === "whatsapp" || this.orderType === "website";
+        },
+    },
+
     price: {
         type: Number,
         required: true,
     },
+
     deliveryPrice: {
         type: Number,
-        required: true,
+        required: function () {
+            return this.orderType === "whatsapp" || this.orderType === "website";
+        },
     },
+
+    // NEW
+    pricingType: {
+        type: String,
+        enum: ["standard", "custom"],
+        default: "standard"
+    },
+
+    // NEW
+    profit: {
+        type: Number,
+        default: 0
+    },
+
+    // NEW
+    lossReason: {
+        type: String
+    },
+
     status: {
         type: String,
         enum: ['ordered', 'shipped', 'delivered'],
         default: 'ordered',
     },
+
     shippedAt: {
         type: Date,
     },
+
     deliveredAt: {
         type: Date,
     },
+
     source: {
         type: String,
-        enum: ['زائر', 'تاجر', 'زبون', 'ادمن'],
+        enum: ['زائر','تاجر','زبون','ادمن','متجر']
     },
+
     orderNumber: {
         type: Number,
         required: false,
     },
+
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
     },
+
     usedPoints: {
         type: Number,
         required: false,
     },
+
     products: [
         {
             productId: String,
@@ -70,6 +118,7 @@ const orderSchema = new mongoose.Schema({
         type: String,
         required: false,
     },
+
 },{timestamps: true})
 
 

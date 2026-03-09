@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
         role: {
             type: String,
             required: true,
-            enum: ["admin", "user", "wholesaler"],
+            enum: ["admin", "user", "wholesaler", "cashier"],
             default: 'user',
         },
         orderHistory: [
