@@ -3,26 +3,47 @@ import User from "../models/user.model.js";
 import twilio from 'twilio';
 import dotenv from 'dotenv';
 import Product from "../models/product.model.js";
+import InventoryTransaction from "../models/inventory.model.js";
+import FinancialTransaction from "../models/financial.model.js";
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-
+const getDeliveryRevenue = (region) => {
+    switch(region){
+        case "الضفة الغربية":
+            return 5;
+        case "القدس":
+            return 5;
+        case "الداخل":
+            return 20;
+        case "ابو غوش":
+            return 0;
+        default:
+            return 0;
+    }
+}
 
 export const createOrder = async (req, res) => {
     try {
-        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes, source, usedPoints } = req.body;
 
-        if (!fullName || !phoneNumber || !region || !city || typeof price !== "number" || typeof deliveryPrice !== "number" || typeof numOfItems !== "number" || !Array.isArray(products) || products.length === 0) {
+        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes, source, orderType, usedPoints} = req.body;
+
+        if (!fullName || !phoneNumber || typeof price !== "number" || typeof deliveryPrice !== "number" || typeof numOfItems !== "number" || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({ error: "Missing or invalid required fields" });
         }
 
+        let itemsCost = 0;
         const formattedProducts = [];
+        const inventoryTransactions = [];
+
 
         // ===============================
-        // 🔥 STOCK + SNAPSHOT
+        // 🔥 STOCK + COST CALCULATION
         // ===============================
+
         for (const item of products) {
+
             if (!item.id || typeof item.quantity !== "number") {
                 return res.status(400).json({
                     error: "Each product must include id and quantity",
@@ -30,36 +51,71 @@ export const createOrder = async (req, res) => {
             }
 
             const product = await Product.findById(item.id);
+
             if (!product) {
                 return res.status(404).json({
                     error: `Product not found: ${item.id}`,
                 });
             }
 
+            // STOCK CHECK
             if (product.type === "inStore") {
+
                 if (product.stock < item.quantity) {
                     return res.status(400).json({
-                        error: `لا يوجد مخزون كافي للمنتج  ${product.productName}`,
+                        error: `لا يوجد مخزون كافي للمنتج ${product.productName}`,
                     });
                 }
 
                 product.stock -= item.quantity;
+
                 if (product.stock === 0) product.isSoldOut = true;
+
                 await product.save();
             }
 
+            // COST CALCULATION
+            const productCost = product.originalPrice * item.quantity;
+            itemsCost += productCost;
+
+
+            // SNAPSHOT PRODUCT
             formattedProducts.push({
                 productId: product.id,
                 name: product.productName,
                 image: product.image?.[0] || "",
                 price: item.price,
+                originalPrice: product.originalPrice,
                 quantity: item.quantity,
                 source: item.source,
             });
+
+
+            // INVENTORY TRANSACTION
+            inventoryTransactions.push({
+                productId: product._id,
+                type: "sale",
+                quantity: item.quantity,
+                costPerItem: product.originalPrice,
+                totalCost: productCost,
+                note: "Order Sale"
+            });
+
         }
 
+
         // ===============================
-        // 🎁 POINTS LOGIC (ONLY ONCE)
+        // DELIVERY + PROFIT
+        // ===============================
+
+        const deliveryRevenue = getDeliveryRevenue(region);
+
+        const orderProfit =
+            price - itemsCost + deliveryRevenue;
+
+
+        // ===============================
+        // 🎁 POINTS LOGIC
         // ===============================
 
         let finalUsedPoints = 0;
@@ -71,12 +127,13 @@ export const createOrder = async (req, res) => {
         if (req.user && req.user.role === "user") {
 
             const user = await User.findById(req.user._id);
+
             if (!user) {
                 return res.status(404).json({ error: "User not found" });
             }
 
-            // ✅ Validate discount points
             if (usedPoints > 0) {
+
                 if (usedPoints > user.points) {
                     return res.status(400).json({
                         error: "Not enough points",
@@ -84,35 +141,48 @@ export const createOrder = async (req, res) => {
                 }
 
                 finalUsedPoints = usedPoints;
-                console.log("finalUsedPoints is : ", finalUsedPoints)
+
                 user.points -= finalUsedPoints;
             }
 
-            // ✅ Earn new points after discount
             const paidAmount = totalAmount - finalUsedPoints;
+
             earnedPoints = Math.floor(paidAmount / 100);
-            console.log("earnedPoints is : ", earnedPoints)
+
             user.points += earnedPoints;
 
             updatedUser = await user.save();
+
         } else if (req.user && req.user.role === "wholesaler") {
+
             const user = await User.findById(req.user._id);
+
             if (!user) {
                 return res.status(404).json({ error: "User not found" });
             }
+
             updatedUser = await user.save();
         }
+
+
+        // ===============================
+        // ORDER NUMBER
+        // ===============================
 
         let orderNumber = null;
 
         if (req.user) {
+
             const userOrdersCount = await Order.countDocuments({
                 userId: req.user._id
             });
+
             orderNumber = userOrdersCount + 1;
         }
+
+
         // ===============================
-        // ✅ CREATE ORDER
+        // CREATE ORDER
         // ===============================
 
         const newOrder = await Order.create({
@@ -126,30 +196,87 @@ export const createOrder = async (req, res) => {
             source,
             products: formattedProducts,
             notes,
+            orderType,
             usedPoints: finalUsedPoints,
             earnedPoints,
             userId: req.user?._id || null,
-            orderNumber
+            orderNumber,
+            profit: orderProfit
         });
 
-        // Push order to user history
+
+        // ===============================
+        // INVENTORY TRANSACTIONS
+        // ===============================
+
+        for (const tx of inventoryTransactions) {
+            console.log("tx is :", tx )
+            await InventoryTransaction.create({
+                ...tx,
+                orderId: newOrder._id
+            });
+
+        }
+
+
+        // ===============================
+        // FINANCIAL TRANSACTIONS
+        // ===============================
+
+        await FinancialTransaction.create({
+            type: "saleRevenue",
+            amount: price,
+            orderId: newOrder._id,
+            description: "Order revenue"
+        });
+
+        await FinancialTransaction.create({
+            type: "deliveryRevenue",
+            amount: deliveryRevenue,
+            orderId: newOrder._id,
+            description: "Delivery margin"
+        });
+
+        await FinancialTransaction.create({
+            type: "productCost",
+            amount: -itemsCost,
+            orderId: newOrder._id,
+            description: "Cost of goods sold"
+        });
+
+
+        // ===============================
+        // USER ORDER HISTORY
+        // ===============================
+
         if (updatedUser) {
+
             updatedUser.orderHistory.push(newOrder._id);
+
             await updatedUser.save();
         }
+
+
+        // ===============================
+        // RESPONSE
+        // ===============================
 
         res.status(201).json({
             message: "Order created successfully",
             order: newOrder,
-            user: updatedUser   // 🔥 IMPORTANT: return updated user
+            user: updatedUser
         });
 
     } catch (error) {
+
         console.error("Order creation error:", error);
-        res.status(500).json({ error: "Internal server error" });
+
+        res.status(500).json({
+            error: "Internal server error"
+        });
     }
-};
-// Get All Orders
+};// Get All Orders
+
 export const getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find().sort({ createdAt: -1 });
