@@ -27,10 +27,20 @@ const getDeliveryRevenue = (region) => {
 export const createOrder = async (req, res) => {
     try {
 
-        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes, source, orderType, usedPoints} = req.body;
+        const {fullName, phoneNumber, region, city, price, deliveryPrice, numOfItems, products, notes, source, orderType, usedPoints,  pricingType, lossReason} = req.body;
 
-        if (!fullName || !phoneNumber || typeof price !== "number" || typeof deliveryPrice !== "number" || typeof numOfItems !== "number" || !Array.isArray(products) || products.length === 0) {
+        const isDeliveryOrder = orderType === "whatsapp" || orderType === "website";
+        const isStoreOrder = orderType === "store";
+        const isLossOrder = orderType === "loss";
+
+        if (typeof price !== "number" || typeof deliveryPrice !== "number" || typeof numOfItems !== "number" || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({ error: "Missing or invalid required fields" });
+        }
+
+        if (isDeliveryOrder) {
+            if (!fullName || !phoneNumber || !region || !city) {
+                return res.status(400).json({ error: "Missing customer or delivery data" });
+            }
         }
 
         let itemsCost = 0;
@@ -94,11 +104,11 @@ export const createOrder = async (req, res) => {
             // INVENTORY TRANSACTION
             inventoryTransactions.push({
                 productId: product._id,
-                type: "sale",
+                type: isLossOrder ? "loss" : "sale",
                 quantity: item.quantity,
                 costPerItem: product.originalPrice,
                 totalCost: productCost,
-                note: "Order Sale"
+                note: isLossOrder ? (lossReason || "Inventory loss") : "Order Sale"
             });
 
         }
@@ -108,10 +118,17 @@ export const createOrder = async (req, res) => {
         // DELIVERY + PROFIT
         // ===============================
 
-        const deliveryRevenue = getDeliveryRevenue(region);
+        const deliveryRevenue = isDeliveryOrder ? getDeliveryRevenue(region) : 0;
 
-        const orderProfit =
-            price - itemsCost + deliveryRevenue;
+        let orderProfit = 0;
+
+        if (isLossOrder) {
+            orderProfit = -itemsCost;
+        } else {
+            orderProfit = price - itemsCost + deliveryRevenue;
+        }
+
+        // const orderProfit = price - itemsCost + deliveryRevenue;
 
 
         // ===============================
@@ -186,10 +203,10 @@ export const createOrder = async (req, res) => {
         // ===============================
 
         const newOrder = await Order.create({
-            fullName,
-            phoneNumber,
-            region,
-            city,
+            fullName: isDeliveryOrder ? fullName : undefined,
+            phoneNumber: isDeliveryOrder ? phoneNumber : undefined,
+            region: isDeliveryOrder ? region : undefined,
+            city: isDeliveryOrder ? city : undefined,
             price,
             deliveryPrice,
             numOfItems,
@@ -197,6 +214,8 @@ export const createOrder = async (req, res) => {
             products: formattedProducts,
             notes,
             orderType,
+            pricingType,
+            lossReason: isLossOrder ? lossReason : undefined,
             usedPoints: finalUsedPoints,
             earnedPoints,
             userId: req.user?._id || null,
@@ -223,26 +242,37 @@ export const createOrder = async (req, res) => {
         // FINANCIAL TRANSACTIONS
         // ===============================
 
-        await FinancialTransaction.create({
-            type: "saleRevenue",
-            amount: price,
-            orderId: newOrder._id,
-            description: "Order revenue"
-        });
+        if (isLossOrder) {
+            await FinancialTransaction.create({
+                type: "loss",
+                amount: -itemsCost,
+                orderId: newOrder._id,
+                description: lossReason || "Inventory loss"
+            });
+        } else {
+            await FinancialTransaction.create({
+                type: "saleRevenue",
+                amount: price,
+                orderId: newOrder._id,
+                description: "Order revenue"
+            });
 
-        await FinancialTransaction.create({
-            type: "deliveryRevenue",
-            amount: deliveryRevenue,
-            orderId: newOrder._id,
-            description: "Delivery margin"
-        });
+            if (deliveryRevenue > 0) {
+                await FinancialTransaction.create({
+                    type: "deliveryRevenue",
+                    amount: deliveryRevenue,
+                    orderId: newOrder._id,
+                    description: "Delivery margin"
+                });
+            }
 
-        await FinancialTransaction.create({
-            type: "productCost",
-            amount: -itemsCost,
-            orderId: newOrder._id,
-            description: "Cost of goods sold"
-        });
+            await FinancialTransaction.create({
+                type: "productCost",
+                amount: -itemsCost,
+                orderId: newOrder._id,
+                description: "Cost of goods sold"
+            });
+        }
 
 
         // ===============================
@@ -276,6 +306,56 @@ export const createOrder = async (req, res) => {
         });
     }
 };// Get All Orders
+
+export const getRecentOrderFinance = async (req, res) => {
+    try {
+        const limit = Number(req.query.limit) || 20;
+
+        const orders = await Order.find()
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .select(
+                "orderNumber orderType fullName price deliveryPrice createdAt products region"
+            );
+
+        const formatted = orders.map((order) => {
+            const cogs = order.products.reduce((sum, item) => {
+                return sum + (item.originalPrice || 0) * item.quantity;
+            }, 0);
+
+            const deliveryRevenue =
+                order.orderType === "whatsapp" || order.orderType === "website"
+                    ? getDeliveryRevenue(order.region)
+                    : 0;
+
+            const productRevenue = order.price || 0;
+            const productProfit = productRevenue - cogs;
+            const totalRevenue = productProfit + deliveryRevenue;
+
+            return {
+                _id: order._id,
+                orderNumber: order.orderNumber,
+                orderType: order.orderType,
+                fullName: order.fullName,
+                productRevenue,
+                cogs,
+                productProfit,
+                deliveryPrice: order.deliveryPrice || 0,
+                deliveryRevenue,
+                totalRevenue,
+                createdAt: order.createdAt
+            };
+        });
+
+        res.json({
+            orders: formatted
+        });
+    } catch (error) {
+        console.error("Recent order finance error:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 
 export const getAllOrders = async (req, res) => {
     try {

@@ -85,6 +85,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             source: !user ? "زائر" : isWholesaler ? "تاجر" : isUser ? "زبون" : "ادمن",
             numOfItems,
             usedPoints: selectedPointsDiscount,
+            orderType: 'website',
             products: cartItems.map(item => ({
                 id: item._id,
                 productId: item.id,
@@ -327,7 +328,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                                 {/* Pricing */}
 
                                 {orderType !== "loss" && (
-
                                     <div>
 
                                         <Label>نوع السعر</Label>
@@ -352,6 +352,17 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
 
                                         </Select>
 
+                                    </div>
+                                )}
+
+
+                                {/* Custom price */}
+
+                                {pricingType === "custom" && orderType !== "loss" && (
+
+                                    <div>
+                                        <Label>السعر المخصص</Label>
+                                        <Input type="number" value={customPrice} onChange={(e)=>setCustomPrice(Number(e.target.value))}/>
                                     </div>
 
                                 )}
@@ -382,20 +393,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                                             <Input id="city" type="text" value={cashierCity} onChange={(e) => setCashierCity(e.target.value)} placeholder="أدخل اسم المدينة" required/>
                                         </div>
                                     </>
-                                )
-
-                                }
-
-                                {/* Custom price */}
-
-                                {pricingType === "custom" && orderType !== "loss" && (
-
-                                    <div>
-                                        <Label>السعر المخصص</Label>
-                                        <Input type="number" value={customPrice} onChange={(e)=>setCustomPrice(Number(e.target.value))}/>
-                                    </div>
-
                                 )}
+
+
 
                             </div>
                         )
