@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import orderRoutes from "./routes/order.routes.js";
+import financeRoutes from "./routes/finance.routes.js";
 import {fileURLToPath} from "url";
 import path from "path";
 import "./cron/deliveryCron.js";
@@ -27,6 +28,7 @@ app.use('/api/auth',authRoutes);
 app.use('/api/product',productRoutes);
 app.use('/api/category',categoryRoutes);
 app.use('/api/order',orderRoutes);
+app.use('/api/finance',financeRoutes);
 const staticPath = path.join(__dirname, 'static');
 app.use(express.static(staticPath));
 

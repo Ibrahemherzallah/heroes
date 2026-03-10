@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Label } from "@/components/ui/label";
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter} from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Product } from '@/contexts/CartContext';
 import CategoryForm, { Category } from '@/components/CategoryForm';
@@ -31,8 +32,90 @@ interface Order {
   numOfItems: number;
   productId: string;
   createdAt: string;
+  usedPoints: number;
+  status: any;
+  source: any;
+
 }
 
+
+type FinanceSummary = {
+  currentBalance: number;
+  totalSalesRevenue: number;
+  totalDeliveryRevenue: number;
+  totalManualRevenue: number;
+  totalRevenue: number;
+  totalExpenses: number;
+  totalLosses: number;
+  totalCOGS: number;
+  netProfit: number;
+};
+
+type FinancialTransaction = {
+  _id: string;
+  type: string;
+  amount: number;
+  description?: string;
+  category?: string;
+  createdAt: string;
+  orderId?: {
+    _id: string;
+    orderNumber?: number;
+    fullName?: string;
+    price?: number;
+  };
+};
+
+type RecentOrderFinance = {
+  _id: string;
+  orderNumber?: number;
+  orderType: string;
+  fullName?: string;
+  price: number;
+  deliveryPrice: number;
+  deliveryRevenue?: number;
+  cogs: number;
+  netProfit: number;
+  createdAt: string;
+};
+
+type MonthlyReportItem = {
+  month: number;
+  revenue: number;
+  deliveryRevenue: number;
+  manualRevenue: number;
+  cogs: number;
+  expenses: number;
+  losses: number;
+  net: number;
+};
+
+const monthNamesAr = [
+  "",
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+
+const FinanceCard = ({title, value,}: { title: string; value?: number; }) => (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm text-gray-600">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-bold">{value ?? 0} ₪</p>
+      </CardContent>
+    </Card>
+);
 
 
 const AdminDashboard = () => {
@@ -41,13 +124,13 @@ const AdminDashboard = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
-  const [activeTab,setActiveTab] = useState('products')
-  const [activeUsersTab,setActiveUsersTab] = useState('products')
+  const [activeTab, setActiveTab] = useState("products");
+  const [activeUsersTab, setActiveUsersTab] = useState("products");
   const [orders, setOrders] = useState<Order[]>([]);
   const [normalUsers, setNormalUsers] = useState([]);
   const [wholesalers, setWholesalers] = useState([]);
@@ -56,7 +139,54 @@ const AdminDashboard = () => {
   const [loadingDelete, setLoadingDelete] = useState<string | null>(null);
   const [editingWholesaler, setEditingWholesaler] = useState(null);
 
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  const isCashier = user?.role === "cashier";
+
+// Finance
+  const [financeSummary, setFinanceSummary] = useState<any>(null);
+  const [monthlyReport, setMonthlyReport] = useState<any[]>([]);
+  const [financialTransactions, setFinancialTransactions] = useState<any[]>([]);
+  const [inventoryTransactions, setInventoryTransactions] = useState<any[]>([]);
+  // const [recentOrderFinance, setRecentOrderFinance] = useState<any[]>([]);
+
+  const [financeLoading, setFinanceLoading] = useState(false);
+  const [financeError, setFinanceError] = useState("");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+// Dialogs
+  const [showManualRevenueDialog, setShowManualRevenueDialog] = useState(false);
+  const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+  const [showOpeningBalanceDialog, setShowOpeningBalanceDialog] = useState(false);
+
+// Forms
+  const [manualRevenueAmount, setManualRevenueAmount] = useState<number | "">("");
+  const [manualRevenueDescription, setManualRevenueDescription] = useState("");
+
+  const [expenseAmount, setExpenseAmount] = useState<number | "">("");
+  const [expenseDescription, setExpenseDescription] = useState("");
+  const [expenseCategory, setExpenseCategory] = useState("other");
+
+  const [openingBalanceAmount, setOpeningBalanceAmount] = useState<number | "">("");
+  const [openingBalanceDescription, setOpeningBalanceDescription] = useState("");
+
+  const [lastExpenses, setLastExpenses] = useState<any[]>([]);
+  const [lastManualRevenues, setLastManualRevenues] = useState<any[]>([]);
+  const [recentOrderFinance, setRecentOrderFinance] = useState<any[]>([]);
+
+
+  const getAuthHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
+  };
 
   const fetchOrders = async () => {
     try {
@@ -80,48 +210,6 @@ const AdminDashboard = () => {
     setNormalUsers(data.filter((u) => u.role === "user"));
     setWholesalers(data.filter((u) => u.role === "wholesaler"));
   };
-
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_ENV}/api/product`);
-        if (!res.ok) throw new Error('فشل تحميل الفئات');
-
-        const data = await res.json();
-        setProducts(data);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_ENV}/api/category`);
-        if (!res.ok) throw new Error('فشل تحميل الفئات');
-
-        const data = await res.json();
-        setCategories(data);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts()
-    fetchCategories()
-  }, []);
-  useEffect(() => {
-    if(activeTab === 'orders') {
-      fetchOrders();
-    }
-    if(activeTab === 'users') {
-      fetchUsers();
-    }
-  }, [activeTab]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -529,7 +617,6 @@ const AdminDashboard = () => {
     }
   };
 
-
   const resetPassword = async (userId) => {
     try {
       const token = localStorage.getItem("token");
@@ -557,6 +644,280 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchFinanceSummary = async () => {
+    const res = await fetch(`${import.meta.env.VITE_ENV}/api/finance/summary`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!res.ok) throw new Error("فشل تحميل الملخص المالي");
+
+    const data = await res.json();
+    setFinanceSummary(data);
+  };
+
+  const fetchMonthlyReport = async (year: number) => {
+    const res = await fetch(
+        `${import.meta.env.VITE_ENV}/api/finance/monthly-report?year=${year}`,
+        {
+          headers: getAuthHeaders(),
+        }
+    );
+
+    if (!res.ok) throw new Error("فشل تحميل التقرير الشهري");
+
+    const data = await res.json();
+    setMonthlyReport(data.report || []);
+  };
+
+  const fetchFinancialTransactions = async () => {
+    const res = await fetch(`${import.meta.env.VITE_ENV}/api/finance/transactions-finance`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!res.ok) throw new Error("فشل تحميل الحركات المالية");
+
+    const data = await res.json();
+    setFinancialTransactions(data.transactions || []);
+  };
+
+  const fetchInventoryTransactions = async () => {
+    const res = await fetch(`${import.meta.env.VITE_ENV}/api/finance/transactions-inventory`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!res.ok) throw new Error("فشل تحميل حركات المخزون");
+
+    const data = await res.json();
+    setInventoryTransactions(data.transactions || []);
+  };
+
+  const fetchLastExpenses = async () => {
+    const res = await fetch(
+        `${import.meta.env.VITE_ENV}/api/finance/transactions?type=expense&limit=10`,
+        {
+          headers: getAuthHeaders(),
+        }
+    );
+
+    if (!res.ok) throw new Error("فشل تحميل آخر المصاريف");
+
+    const data = await res.json();
+    setLastExpenses(data.transactions || []);
+  };
+
+
+  const fetchLastManualRevenues = async () => {
+    const res = await fetch(
+        `${import.meta.env.VITE_ENV}/api/finance/transactions?type=manualRevenue&limit=10`,
+        {
+          headers: getAuthHeaders(),
+        }
+    );
+
+    if (!res.ok) throw new Error("فشل تحميل آخر الإيرادات اليدوية");
+
+    const data = await res.json();
+    setLastManualRevenues(data.transactions || []);
+  };
+
+  const fetchRecentOrderFinance = async () => {
+    const res = await fetch(
+        `${import.meta.env.VITE_ENV}/api/order/recent-orders?limit=10`,
+        {
+          headers: getAuthHeaders(),
+        }
+    );
+
+    if (!res.ok) throw new Error("فشل تحميل آخر الطلبات المالية");
+
+    const data = await res.json();
+    setRecentOrderFinance(data.orders || []);
+  };
+
+  const fetchFinanceData = async () => {
+    try {
+      setFinanceLoading(true);
+      setFinanceError("");
+
+      await Promise.all([
+        fetchFinanceSummary(),
+        fetchMonthlyReport(selectedYear),
+        fetchFinancialTransactions(),
+        fetchInventoryTransactions(),
+        fetchRecentOrderFinance(),
+        fetchLastManualRevenues(),
+        fetchLastExpenses,
+      ]);
+    } catch (err: any) {
+      console.error(err);
+      setFinanceError(err.message || "حدث خطأ أثناء تحميل البيانات المالية");
+    } finally {
+      setFinanceLoading(false);
+    }
+  };
+
+  const resetManualRevenueForm = () => {
+    setManualRevenueAmount("");
+    setManualRevenueDescription("");
+  };
+
+  const resetExpenseForm = () => {
+    setExpenseAmount("");
+    setExpenseDescription("");
+    setExpenseCategory("other");
+  };
+
+  const resetOpeningBalanceForm = () => {
+    setOpeningBalanceAmount("");
+    setOpeningBalanceDescription("");
+  };
+
+  const handleAddManualTransaction = async ({type, amount, description, category,}: { type: "manualRevenue" | "expense" | "openingBalance"; amount: number; description: string; category?: string; }) => {
+    try {
+      const res = await fetch(
+          `${import.meta.env.VITE_ENV}/api/finance/manual-transaction`,
+          {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              type,
+              amount,
+              description,
+              category,
+            }),
+          }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "فشل إضافة الحركة المالية");
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description: "تمت إضافة الحركة المالية",
+      });
+
+      await fetchFinanceData();
+
+      if (type === "manualRevenue") {
+        setShowManualRevenueDialog(false);
+        resetManualRevenueForm();
+      }
+
+      if (type === "expense") {
+        setShowExpenseDialog(false);
+        resetExpenseForm();
+      }
+
+      if (type === "openingBalance") {
+        setShowOpeningBalanceDialog(false);
+        resetOpeningBalanceForm();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "خطأ",
+        description: err.message || "حدث خطأ أثناء إضافة الحركة المالية",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_ENV}/api/product`);
+        if (!res.ok) throw new Error('فشل تحميل الفئات');
+
+        const data = await res.json();
+        setProducts(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+  const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_ENV}/api/category`);
+        if (!res.ok) throw new Error('فشل تحميل الفئات');
+
+        const data = await res.json();
+        setCategories(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        await Promise.all([fetchProducts(), fetchCategories()]);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+  useEffect(() => {
+    if (activeTab === "orders") {
+      fetchOrders();
+    }
+
+    if (activeTab === "users") {
+      fetchUsers();
+    }
+
+    if (activeTab === "finance") {
+      fetchFinanceData();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "finance") return;
+
+    fetchMonthlyReport(selectedYear).catch((err: any) => {
+      console.error(err);
+      setFinanceError(err.message || "فشل تحميل التقرير الشهري");
+    });
+  }, [selectedYear, activeTab]);
+
+
+  const mergedRecentRevenues = [
+    ...recentOrderFinance.map((order) => ({
+      kind: "order" as const,
+      _id: order._id,
+      createdAt: order.createdAt,
+      orderNumber: order.orderNumber,
+      orderType: order.orderType,
+      productRevenue: order.productRevenue,
+      cogs: order.cogs,
+      productProfit: order.productProfit,
+      deliveryPrice: order.deliveryPrice,
+      deliveryRevenue: order.deliveryRevenue,
+      totalRevenue: order.totalRevenue,
+    })),
+    ...lastManualRevenues.map((revenue) => ({
+      kind: "manual" as const,
+      _id: revenue._id,
+      createdAt: revenue.createdAt,
+      description: revenue.description,
+      amount: revenue.amount,
+      category: revenue.category,
+    })),
+  ].sort(
+      (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -585,11 +946,16 @@ const AdminDashboard = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="products" onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${isCashier ? 'grid-cols-4' : 'grid-cols-5' }`}>
             <TabsTrigger value="products">إدارة المنتجات</TabsTrigger>
             <TabsTrigger value="categories">إدارة الفئات</TabsTrigger>
             <TabsTrigger value="orders">الطلبات</TabsTrigger>
             <TabsTrigger value="users">المستخدمين</TabsTrigger>
+            {
+              !isCashier && (
+                    <TabsTrigger value="finance">المالية والمخزون</TabsTrigger>
+                )
+            }
           </TabsList>
 
           <TabsContent value="products" className="space-y-6">
@@ -1031,6 +1397,438 @@ const AdminDashboard = () => {
                 </Tabs>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="finance" className="space-y-6">
+            {financeLoading ? (
+                <p>جاري تحميل البيانات...</p>
+            ) : financeError ? (
+                <p className="text-red-500">{financeError}</p>
+            ) : (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap gap-3">
+                      <Button onClick={() => setShowManualRevenueDialog(true)}>
+                        إضافة إيراد يدوي
+                      </Button>
+
+                      <Button variant="outline" onClick={() => setShowExpenseDialog(true)}>
+                        إضافة مصروف
+                      </Button>
+
+                      <Button variant="secondary" onClick={() => setShowOpeningBalanceDialog(true)}>
+                        إضافة رصيد افتتاحي
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="year">السنة</Label>
+                      <Input
+                          id="year"
+                          type="number"
+                          value={selectedYear}
+                          onChange={(e) => setSelectedYear(Number(e.target.value))}
+                          className="w-32"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <FinanceCard title="الرصيد الحالي" value={financeSummary?.currentBalance}/>
+                    <FinanceCard title="المصروفات" value={financeSummary?.totalExpenses}/>
+                    <FinanceCard title="إيرادات التوصيل" value={financeSummary?.totalDeliveryRevenue}/>
+                    <FinanceCard title="إيرادات الطلبات" value={financeSummary?.ordersRevenue}/>
+                    <FinanceCard title="إيرادات يدوية" value={financeSummary?.manualRevenue}/>
+                    <FinanceCard title="إجمالي الإيرادات" value={financeSummary?.totalRevenue}/>
+                    <FinanceCard title="تكلفة البضاعة" value={financeSummary?.totalCOGS}/>
+                    <FinanceCard title="صافي الربح" value={financeSummary?.netProfit}/>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>آخر المصاريف</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {lastExpenses.length === 0 ? (
+                          <p className="text-sm text-gray-500">لا توجد مصاريف</p>
+                      ) : (
+                          <div className="space-y-3 max-h-[70vh] overflow-auto">
+                            {lastExpenses.map((expense) => (
+                                <div
+                                    key={expense._id}
+                                    className="flex flex-col md:flex-row md:items-center md:justify-between border rounded-lg p-3 gap-3"
+                                >
+                                  <div>
+                                    <p className="font-medium">مصروف</p>
+                                    <p className="text-sm text-gray-500">
+                                      {expense.description || "-"}
+                                    </p>
+
+                                    {expense.category && (
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          التصنيف: {expense.category}
+                                        </p>
+                                    )}
+                                  </div>
+
+                                  <div className="text-left">
+                                    <p className="font-bold">{Math.abs(expense.amount)} ₪</p>
+                                    <p className="text-xs text-gray-400">
+                                      {new Date(expense.createdAt).toLocaleString("ar-EG")}
+                                    </p>
+                                  </div>
+                                </div>
+                            ))}
+                          </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>آخر الإيرادات</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {mergedRecentRevenues.length === 0 ? (
+                          <p className="text-sm text-gray-500">لا توجد إيرادات</p>
+                      ) : (
+                          <div className="space-y-4 max-h-[90vh] overflow-auto">
+                            {mergedRecentRevenues.map((item) =>
+                                item.kind === "order" ? (
+                                    <div
+                                        key={`order-${item._id}`}
+                                        className="border rounded-lg p-4 space-y-3"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="font-semibold">
+                                            طلب {item.orderNumber ? `#${item.orderNumber}` : ""}
+                                          </p>
+                                          <p className="text-sm text-gray-500">
+                                            {item.orderType || "-"}
+                                          </p>
+                                        </div>
+
+                                        <div className="text-left">
+                                          <p className="font-bold">{item.totalRevenue ?? 0} ₪</p>
+                                          <p className="text-xs text-gray-400">إجمالي الإيراد</p>
+                                        </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                                        <div className="border rounded p-2">
+                                          <p className="text-gray-500">سعر البيع</p>
+                                          <p className="font-medium">{item.productRevenue ?? 0} ₪</p>
+                                        </div>
+
+                                        <div className="border rounded p-2">
+                                          <p className="text-gray-500">تكلفة البضاعة</p>
+                                          <p className="font-medium">{item.cogs ?? 0} ₪</p>
+                                        </div>
+
+                                        <div className="border rounded p-2">
+                                          <p className="text-gray-500">ربح المنتج</p>
+                                          <p className="font-medium">{item.productProfit ?? 0} ₪</p>
+                                        </div>
+
+                                        <div className="border rounded p-2">
+                                          <p className="text-gray-500">سعر التوصيل</p>
+                                          <p className="font-medium">{item.deliveryPrice ?? 0} ₪</p>
+                                        </div>
+
+                                        <div className="border rounded p-2">
+                                          <p className="text-gray-500">ربح التوصيل</p>
+                                          <p className="font-medium">{item.deliveryRevenue ?? 0} ₪</p>
+                                        </div>
+
+                                        <div className="border rounded p-2">
+                                          <p className="text-gray-500">الإجمالي</p>
+                                          <p className="font-bold">{item.totalRevenue ?? 0} ₪</p>
+                                        </div>
+                                      </div>
+
+                                      <p className="text-xs text-gray-400">
+                                        {new Date(item.createdAt).toLocaleString("ar-EG")}
+                                      </p>
+                                    </div>
+                                ) : (
+                                    <div
+                                        key={`manual-${item._id}`}
+                                        className="border rounded-lg p-4 bg-gray-50 space-y-2"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="font-semibold">إيراد يدوي</p>
+                                          <p className="text-sm text-gray-500">
+                                            {item.description || "-"}
+                                          </p>
+
+                                          {item.category && (
+                                              <p className="text-xs text-gray-400 mt-1">
+                                                التصنيف: {item.category}
+                                              </p>
+                                          )}
+                                        </div>
+
+                                        <div className="text-left">
+                                          <p className="font-bold">{item.amount ?? 0} ₪</p>
+                                          <p className="text-xs text-gray-400">
+                                            {new Date(item.createdAt).toLocaleString("ar-EG")}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                )
+                            )}
+                          </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>التقرير الشهري</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {monthlyReport.length === 0 ? (
+                          <p className="text-sm text-gray-500">لا توجد بيانات للشهور</p>
+                      ) : (
+                          <div className="space-y-3">
+                            {monthlyReport.map((month, index) => (
+                                <div
+                                    key={index}
+                                    className="grid grid-cols-2 md:grid-cols-8 gap-3 border rounded-lg p-3"
+                                >
+                                  <div>
+                                    <p className="text-sm text-gray-500">الشهر</p>
+                                    <p className="font-medium">
+                                      {monthNamesAr[month.month] || month.month}
+                                    </p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">إيراد البيع</p>
+                                    <p className="font-medium">{month.revenue ?? 0} ₪</p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">إيراد التوصيل</p>
+                                    <p className="font-medium">
+                                      {month.deliveryRevenue ?? 0} ₪
+                                    </p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">إيراد يدوي</p>
+                                    <p className="font-medium">{month.manualRevenue ?? 0} ₪</p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">تكلفة البضاعة</p>
+                                    <p className="font-medium">{month.cogs ?? 0} ₪</p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">المصاريف</p>
+                                    <p className="font-medium">{month.expenses ?? 0} ₪</p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">الخسائر</p>
+                                    <p className="font-medium">{month.losses ?? 0} ₪</p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">الصافي</p>
+                                    <p className="font-bold">{month.net ?? 0} ₪</p>
+                                  </div>
+                                </div>
+                            ))}
+                          </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+            )}
+
+            {/* Manual Revenue Dialog */}
+            <Dialog open={showManualRevenueDialog} onOpenChange={setShowManualRevenueDialog}>
+              <DialogContent>
+                <DialogHeader style={{textAlign:'start'}}>
+                  <DialogTitle>إضافة إيراد يدوي</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>المبلغ</Label>
+                    <Input type="number" value={manualRevenueAmount}
+                        onChange={(e) =>
+                            setManualRevenueAmount(
+                                e.target.value === "" ? "" : Number(e.target.value)
+                            )
+                        }
+                        placeholder="أدخل المبلغ"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>الوصف</Label>
+                    <Input
+                        value={manualRevenueDescription}
+                        onChange={(e) => setManualRevenueDescription(e.target.value)}
+                        placeholder="مثال: بيع مباشر / دخل إضافي"
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                      onClick={() => {
+                        if (!manualRevenueAmount || manualRevenueAmount <= 0) {
+                          toast({
+                            title: "خطأ",
+                            description: "يرجى إدخال مبلغ صحيح",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+
+                        handleAddManualTransaction({
+                          type: "manualRevenue",
+                          amount: Number(manualRevenueAmount),
+                          description: manualRevenueDescription,
+                        });
+                      }}
+                  >
+                    حفظ
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Expense Dialog */}
+            <Dialog open={showExpenseDialog} onOpenChange={setShowExpenseDialog}>
+              <DialogContent>
+                <DialogHeader style={{textAlign:'start'}}>
+                  <DialogTitle>إضافة مصروف</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>المبلغ</Label>
+                    <Input
+                        type="number"
+                        value={expenseAmount}
+                        onChange={(e) =>
+                            setExpenseAmount(
+                                e.target.value === "" ? "" : Number(e.target.value)
+                            )
+                        }
+                        placeholder="أدخل مبلغ المصروف"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>الوصف</Label>
+                    <Input
+                        value={expenseDescription}
+                        onChange={(e) => setExpenseDescription(e.target.value)}
+                        placeholder="مثال: إيجار / كهرباء / مواصلات"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>التصنيف</Label>
+                    <Input
+                        value={expenseCategory}
+                        onChange={(e) => setExpenseCategory(e.target.value)}
+                        placeholder="other"
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                      onClick={() => {
+                        if (!expenseAmount || expenseAmount <= 0) {
+                          toast({
+                            title: "خطأ",
+                            description: "يرجى إدخال مبلغ صحيح",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+
+                        handleAddManualTransaction({
+                          type: "expense",
+                          amount: Number(expenseAmount),
+                          description: expenseDescription,
+                          category: expenseCategory,
+                        });
+                      }}
+                  >
+                    حفظ
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Opening Balance Dialog */}
+            <Dialog open={showOpeningBalanceDialog} onOpenChange={setShowOpeningBalanceDialog}>
+              <DialogContent>
+                <DialogHeader style={{textAlign:'start'}}>
+                  <DialogTitle>إضافة رصيد افتتاحي</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>المبلغ</Label>
+                    <Input
+                        type="number"
+                        value={openingBalanceAmount}
+                        onChange={(e) =>
+                            setOpeningBalanceAmount(
+                                e.target.value === "" ? "" : Number(e.target.value)
+                            )
+                        }
+                        placeholder="أدخل الرصيد الافتتاحي"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>الوصف</Label>
+                    <Input
+                        value={openingBalanceDescription}
+                        onChange={(e) => setOpeningBalanceDescription(e.target.value)}
+                        placeholder="مثال: رصيد افتتاحي لأول مرة"
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                      onClick={() => {
+                        if (!openingBalanceAmount || openingBalanceAmount <= 0) {
+                          toast({
+                            title: "خطأ",
+                            description: "يرجى إدخال مبلغ صحيح",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+
+                        handleAddManualTransaction({
+                          type: "openingBalance",
+                          amount: Number(openingBalanceAmount),
+                          description: openingBalanceDescription,
+                        });
+                      }}
+                  >
+                    حفظ
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </main>

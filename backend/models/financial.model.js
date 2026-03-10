@@ -2,18 +2,35 @@ import mongoose from "mongoose";
 
 const financialTransactionSchema = new mongoose.Schema({
 
-    type:{
-        type:String,
-        enum:[
+    type: {
+        type: String,
+        enum: [
+            "openingBalance",
+            "capitalInjection",
+            "withdrawal",
+            "manualRevenue",
             "saleRevenue",
             "deliveryRevenue",
             "productCost",
             "loss",
             "expense"
         ],
-        required:true
+        required: true
     },
-
+    category: {
+        type: String,
+        enum: [
+            "rent",
+            "salaries",
+            "utilities",
+            "transport",
+            "marketing",
+            "supplies",
+            "maintenance",
+            "other"
+        ],
+        default: "other"
+    },
     amount:{
         type:Number,
         required:true
