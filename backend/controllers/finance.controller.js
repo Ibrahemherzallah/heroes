@@ -103,7 +103,7 @@ export const getMonthlyReport = async (req, res) => {
         const start = new Date(`${year}-01-01T00:00:00.000Z`);
         const end = new Date(`${year + 1}-01-01T00:00:00.000Z`);
 
-        const report = await FinancialTransaction.aggregate([
+        const rawReport = await FinancialTransaction.aggregate([
             {
                 $match: {
                     createdAt: { $gte: start, $lt: end }
@@ -125,8 +125,68 @@ export const getMonthlyReport = async (req, res) => {
             }
         ]);
 
+        const monthlyMap = {};
+
+        for (const item of rawReport) {
+            const month = item._id.month;
+            const type = item._id.type;
+            const total = item.total;
+            if (!monthlyMap[month]) {
+                monthlyMap[month] = {
+                    month,
+                    revenue: 0,
+                    deliveryRevenue: 0,
+                    manualRevenue: 0,
+                    cogs: 0,
+                    expenses: 0,
+                    losses: 0,
+                    net: 0
+                };
+            }
+
+            if (type === "saleRevenue") {
+                monthlyMap[month].revenue = total;
+            } else if (type === "deliveryRevenue") {
+                monthlyMap[month].deliveryRevenue = total;
+            } else if (type === "manualRevenue") {
+                monthlyMap[month].manualRevenue = total;
+            } else if (type === "productCost") {
+                monthlyMap[month].cogs = total;
+            } else if (type === "expense") {
+                monthlyMap[month].expenses = total;
+            } else if (type === "loss") {
+                monthlyMap[month].losses = total;
+            }
+        }
+
+        const report = Array.from({ length: 12 }, (_, i) => {
+            const monthNumber = i + 1;
+
+            const monthData = monthlyMap[monthNumber] || {
+                month: monthNumber,
+                revenue: 0,
+                deliveryRevenue: 0,
+                manualRevenue: 0,
+                cogs: 0,
+                expenses: 0,
+                losses: 0,
+                net: 0
+            };
+
+            monthData.net =
+                monthData.revenue +
+                monthData.deliveryRevenue +
+                monthData.manualRevenue +
+                monthData.cogs +
+                monthData.expenses +
+                monthData.losses;
+
+            return monthData;
+        });
+
         res.json({ year, report });
     } catch (error) {
+        console.error("❌ Error fetching monthly report:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };

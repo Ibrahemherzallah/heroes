@@ -7,6 +7,10 @@ import { FaFacebook, FaTiktok, FaWhatsapp } from 'react-icons/fa';
 import { FaHeadphones } from "react-icons/fa";
 import {getCategoryDescription, getCategoryIcon} from "@/utils/categoryIcons.tsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import HeroCarousel from "@/components/HeroCarousel.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import HeroSlideForm from '@/components/HeroSlideForm';
+import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -14,8 +18,69 @@ const Index = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
   const scrollAmount = 455;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const token = localStorage.getItem("token");
+
+
+  const [showHeroSlideForm, setShowHeroSlideForm] = useState(false);
+  const [editingHeroSlide, setEditingHeroSlide] = useState<any | null>(null);
+
+  const handleSaveHeroSlide = async (slideData: any) => {
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const isEdit = !!slideData.id;
+
+      const res = await fetch(
+          isEdit
+              ? `${import.meta.env.VITE_ENV}/api/hero-slides/${slideData.id}`
+              : `${import.meta.env.VITE_ENV}/api/hero-slides`,
+          {
+            method: isEdit ? "PUT" : "POST",
+            headers,
+            body: JSON.stringify({
+              title: slideData.title,
+              subtitle: slideData.subtitle,
+              image: slideData.image,
+              order: slideData.order,
+              isActive: slideData.isActive,
+            }),
+          }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "فشل حفظ السلايد");
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description: isEdit ? "تم تعديل السلايد" : "تمت إضافة السلايد",
+      });
+
+      setShowHeroSlideForm(false);
+      setEditingHeroSlide(null);
+
+      // لو عندك fetch للإدارة
+      // await fetchHeroSlidesAdmin();
+    } catch (error: any) {
+      toast({
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء الحفظ",
+        variant: "destructive",
+      });
+    }
+  };
 
     const scrollLeft = () => {
       scrollRef.current?.scrollBy({
@@ -70,30 +135,18 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-heroes-gradient-start to-heroes-gradient-end py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            مرحباً بك في Heroes
-          </h1>
-          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            اكتشف أحدث الأجهزة الإلكترونية وإكسسوارات التكنولوجيا بأفضل الأسعار
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/products">
-              <button className="bg-heroes-red text-white px-8 py-3 rounded-lg font-semibold hover:bg-heroes-red/90 transition-colors">
-                تسوق الآن
-              </button>
-            </Link>
-            <Link to="/categories">
-              <button className="bg-white text-heroes-red px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors border-2 border-white">
-                استعرض الفئات
-              </button>
-            </Link>
-          </div>
-        </div>
-      </section>
+
+      <HeroCarousel
+          isAdmin={user?.role === "admin"}
+          onEditSlide={(slide) => {
+            setEditingHeroSlide(slide);
+            setShowHeroSlideForm(true);
+          }}
+          onAddSlide={() => {
+            setEditingHeroSlide(null);
+            setShowHeroSlideForm(true);
+          }}
+      />
 
       {/* Categories Section */}
       <section className="py-14 bg-white">
@@ -117,8 +170,7 @@ const Index = () => {
           <div ref={scrollRef} className="flex gap-6 overflow-x-auto scroll-smooth no-scrollbar">
             {categories.map((category: any) => {
               const Icon = getCategoryIcon(category.name);
-              const description =
-                  category.description || getCategoryDescription(category.name);
+              const description = category.description || getCategoryDescription(category.name);
 
               return (
                   <Link key={category._id} to={`/products?category=${category._id}`}>
@@ -237,6 +289,29 @@ const Index = () => {
           </div>
         </div>
       </footer>
+      <Dialog open={showHeroSlideForm || !!editingHeroSlide}
+          onOpenChange={() => {
+            setShowHeroSlideForm(false);
+            setEditingHeroSlide(null);
+          }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle style={{ textAlign: "start" }}>
+              {editingHeroSlide ? "تعديل سلايد الهيرو" : "إضافة سلايد جديدة"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <HeroSlideForm
+              slide={editingHeroSlide || undefined}
+              onSave={handleSaveHeroSlide}
+              onCancel={() => {
+                setShowHeroSlideForm(false);
+                setEditingHeroSlide(null);
+              }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
