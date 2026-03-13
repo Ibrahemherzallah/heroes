@@ -90,21 +90,20 @@ type MonthlyReportItem = {
   net: number;
 };
 
-const monthNamesAr = [
-  "",
-  "يناير",
-  "فبراير",
-  "مارس",
-  "أبريل",
-  "مايو",
-  "يونيو",
-  "يوليو",
-  "أغسطس",
-  "سبتمبر",
-  "أكتوبر",
-  "نوفمبر",
-  "ديسمبر",
-];
+const monthNamesAr: Record<number, string> = {
+  1: "يناير",
+  2: "فبراير",
+  3: "مارس",
+  4: "أبريل",
+  5: "مايو",
+  6: "يونيو",
+  7: "يوليو",
+  8: "أغسطس",
+  9: "سبتمبر",
+  10: "أكتوبر",
+  11: "نوفمبر",
+  12: "ديسمبر",
+};
 
 const FinanceCard = ({title, value,}: { title: string; value?: number; }) => (
     <Card>
@@ -746,7 +745,7 @@ const AdminDashboard = () => {
         fetchInventoryTransactions(),
         fetchRecentOrderFinance(),
         fetchLastManualRevenues(),
-        fetchLastExpenses,
+        fetchLastExpenses(),
       ]);
     } catch (err: any) {
       console.error(err);
@@ -1595,15 +1594,10 @@ const AdminDashboard = () => {
                       ) : (
                           <div className="space-y-3">
                             {monthlyReport.map((month, index) => (
-                                <div
-                                    key={index}
-                                    className="grid grid-cols-2 md:grid-cols-8 gap-3 border rounded-lg p-3"
-                                >
+                                <div key={index} className="grid grid-cols-2 md:grid-cols-8 gap-3 border rounded-lg p-3">
                                   <div>
-                                    <p className="text-sm text-gray-500">الشهر</p>
-                                    <p className="font-medium">
-                                      {monthNamesAr[month.month] || month.month}
-                                    </p>
+                                    <p className="text-sm text-gray-500">شهر</p>
+                                    <p className="font-medium">{month.month}</p>
                                   </div>
 
                                   <div>
@@ -1634,7 +1628,7 @@ const AdminDashboard = () => {
                                   </div>
 
                                   <div>
-                                    <p className="text-sm text-gray-500">الخسائر</p>
+                                    <p className="text-sm text-gray-500">تكلفة المنتجات الصفرية</p>
                                     <p className="font-medium">{month.losses ?? 0} ₪</p>
                                   </div>
 
