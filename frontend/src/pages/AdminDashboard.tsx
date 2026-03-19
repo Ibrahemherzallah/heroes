@@ -19,6 +19,7 @@ import axios from "axios";
 import { Checkbox } from "@/components/ui/checkbox";
 import WholesalerForm from "@/components/WholesalerForm.tsx";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table";
+import { Trash2 } from "lucide-react";
 
 interface Order {
   _id: string;
@@ -37,73 +38,6 @@ interface Order {
   source: any;
 
 }
-
-
-type FinanceSummary = {
-  currentBalance: number;
-  totalSalesRevenue: number;
-  totalDeliveryRevenue: number;
-  totalManualRevenue: number;
-  totalRevenue: number;
-  totalExpenses: number;
-  totalLosses: number;
-  totalCOGS: number;
-  netProfit: number;
-};
-
-type FinancialTransaction = {
-  _id: string;
-  type: string;
-  amount: number;
-  description?: string;
-  category?: string;
-  createdAt: string;
-  orderId?: {
-    _id: string;
-    orderNumber?: number;
-    fullName?: string;
-    price?: number;
-  };
-};
-
-type RecentOrderFinance = {
-  _id: string;
-  orderNumber?: number;
-  orderType: string;
-  fullName?: string;
-  price: number;
-  deliveryPrice: number;
-  deliveryRevenue?: number;
-  cogs: number;
-  netProfit: number;
-  createdAt: string;
-};
-
-type MonthlyReportItem = {
-  month: number;
-  revenue: number;
-  deliveryRevenue: number;
-  manualRevenue: number;
-  cogs: number;
-  expenses: number;
-  losses: number;
-  net: number;
-};
-
-const monthNamesAr: Record<number, string> = {
-  1: "يناير",
-  2: "فبراير",
-  3: "مارس",
-  4: "أبريل",
-  5: "مايو",
-  6: "يونيو",
-  7: "يوليو",
-  8: "أغسطس",
-  9: "سبتمبر",
-  10: "أكتوبر",
-  11: "نوفمبر",
-  12: "ديسمبر",
-};
 
 const FinanceCard = ({title, value,}: { title: string; value?: number; }) => (
     <Card>
@@ -148,6 +82,7 @@ const AdminDashboard = () => {
   const [monthlyReport, setMonthlyReport] = useState<any[]>([]);
   const [financialTransactions, setFinancialTransactions] = useState<any[]>([]);
   const [inventoryTransactions, setInventoryTransactions] = useState<any[]>([]);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
   // const [recentOrderFinance, setRecentOrderFinance] = useState<any[]>([]);
 
   const [financeLoading, setFinanceLoading] = useState(false);
@@ -189,7 +124,11 @@ const AdminDashboard = () => {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_ENV}/api/order`);
+      const res = await fetch(`${import.meta.env.VITE_ENV}/api/order`,{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await res.json();
       setOrders(data);
     } catch (error) {
@@ -704,6 +643,48 @@ const AdminDashboard = () => {
     setLastExpenses(data.transactions || []);
   };
 
+  const handleDeleteExpense = async (id: string) => {
+    if (!confirm("هل أنت متأكد من حذف هذا المصروف؟")) return;
+
+    try {
+      setDeletingExpenseId(id);
+
+      const res = await fetch(
+          `${import.meta.env.VITE_ENV}/api/finance/transactions/${id}`,
+          {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+          }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "فشل حذف المصروف");
+      }
+
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف المصروف بنجاح",
+      });
+
+      // تحديث القائمة مباشرة
+      setLastExpenses((prev) => prev.filter((e) => e._id !== id));
+
+      // أو لو عندك fetch:
+      // await fetchFinanceData();
+
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "خطأ",
+        description: err.message || "حدث خطأ أثناء الحذف",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingExpenseId(null);
+    }
+  };
 
   const fetchLastManualRevenues = async () => {
     const res = await fetch(
@@ -824,6 +805,58 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleRetrieveOrder = async (orderId: string) => {
+    console.log("the order id is : ", orderId);
+    if (!confirm("هل أنت متأكد من استرجاع هذا الطلب؟ سيتم إعادة الكميات إلى المخزون وعكس الأثر المالي.")) {
+      return;
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const res = await fetch(
+          `${import.meta.env.VITE_ENV}/api/order/${orderId}/retrieve`,
+          {
+            method: "PATCH",
+            headers,
+          }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "فشل استرجاع الطلب");
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم استرجاع الطلب وإعادة الكميات للمخزون",
+      });
+
+      setOrders((prev) =>
+          prev.map((order) =>
+              order._id === orderId
+                  ? { ...order, status: "retrieved", isRetrieved: true, retrievedAt: new Date().toISOString() }
+                  : order
+          )
+      );
+
+      await fetchFinanceData?.();
+    } catch (error: any) {
+      toast({
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء استرجاع الطلب",
+        variant: "destructive",
+      });
+    }
+  };
+
   const fetchProducts = async () => {
       try {
         const res = await fetch(`${import.meta.env.VITE_ENV}/api/product`);
@@ -900,6 +933,7 @@ const AdminDashboard = () => {
       orderType: order.orderType,
       productRevenue: order.productRevenue,
       cogs: order.cogs,
+      status: order.status,
       productProfit: order.productProfit,
       deliveryPrice: order.deliveryPrice,
       deliveryRevenue: order.deliveryRevenue,
@@ -1173,15 +1207,17 @@ const AdminDashboard = () => {
                                   {/* Status Badge */}
                                   <span
                                       className={`text-xs px-3 py-1 rounded-full font-medium
-                                    ${
+                                    $${
                                           order.status === "ordered"
                                               ? "bg-yellow-100 text-yellow-700"
                                               : order.status === "shipped"
                                                   ? "bg-blue-100 text-blue-700"
-                                                  : "bg-green-100 text-green-700"
+                                                  : order.status === "delivered"
+                                                      ? "bg-green-100 text-green-700"
+                                                      : "bg-red-100 text-red-700"
                                       }`}
                                   >
-                                  {order.status}
+                                  {order.status === "retrieved" ? "retrieved" : order.status}
                                 </span>
 
                                   <span className="text-sm text-gray-500">
@@ -1246,14 +1282,15 @@ const AdminDashboard = () => {
                                     تحديد الطلب كشحن
                                   </label>
                                 </div>
-
-                                {/* Delete Button */}
-                                <button
-                                    onClick={() => handleDelete(order._id)}
-                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition"
-                                >
-                                  حذف الطلب
-                                </button>
+                                <div className={'flex gap-3'}>
+                                  {/* Delete Button */}
+                                  <button onClick={() => handleDelete(order._id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition">
+                                    حذف الطلب
+                                  </button>
+                                  <button onClick={() => handleRetrieveOrder(order._id)} disabled={order.status === "retrieved"} className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm transition disabled:opacity-50">
+                                    {order.status === "retrieved" ? "تم الاسترجاع" : "استرجاع الطلب"}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                         )
@@ -1432,13 +1469,14 @@ const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                     <FinanceCard title="الرصيد الحالي" value={financeSummary?.currentBalance}/>
                     <FinanceCard title="المصروفات" value={financeSummary?.totalExpenses}/>
                     <FinanceCard title="إيرادات التوصيل" value={financeSummary?.totalDeliveryRevenue}/>
                     <FinanceCard title="إيرادات الطلبات" value={financeSummary?.ordersRevenue}/>
                     <FinanceCard title="إيرادات يدوية" value={financeSummary?.manualRevenue}/>
                     <FinanceCard title="إجمالي الإيرادات" value={financeSummary?.totalRevenue}/>
+                    <FinanceCard title="مرتجعات الطلبات" value={financeSummary?.totalOrderReturns} />
                     <FinanceCard title="تكلفة البضاعة" value={financeSummary?.totalCOGS}/>
                     <FinanceCard title="صافي الربح" value={financeSummary?.netProfit}/>
                   </div>
@@ -1453,10 +1491,7 @@ const AdminDashboard = () => {
                       ) : (
                           <div className="space-y-3 max-h-[70vh] overflow-auto">
                             {lastExpenses.map((expense) => (
-                                <div
-                                    key={expense._id}
-                                    className="flex flex-col md:flex-row md:items-center md:justify-between border rounded-lg p-3 gap-3"
-                                >
+                                <div key={expense._id} className="flex flex-col md:flex-row md:items-center md:justify-between border rounded-lg p-3 gap-3">
                                   <div>
                                     <p className="font-medium">مصروف</p>
                                     <p className="text-sm text-gray-500">
@@ -1470,11 +1505,21 @@ const AdminDashboard = () => {
                                     )}
                                   </div>
 
-                                  <div className="text-left">
-                                    <p className="font-bold">{Math.abs(expense.amount)} ₪</p>
-                                    <p className="text-xs text-gray-400">
-                                      {new Date(expense.createdAt).toLocaleString("ar-EG")}
-                                    </p>
+                                  <div className="flex items-center justify-between md:justify-end gap-4">
+                                    <div className="text-left">
+                                      <p className="font-bold">{Math.abs(expense.amount)} ₪</p>
+                                      <p className="text-xs text-gray-400">
+                                        {new Date(expense.createdAt).toLocaleString("ar-EG")}
+                                      </p>
+                                    </div>
+
+                                    <button
+                                        onClick={() => handleDeleteExpense(expense._id)}
+                                        disabled={deletingExpenseId === expense._id}
+                                        className="text-red-500 hover:text-red-700 text-sm font-medium disabled:opacity-50"
+                                    >
+                                      {deletingExpenseId === expense._id ? "..." : <Trash2 size={18} />}
+                                    </button>
                                   </div>
                                 </div>
                             ))}
@@ -1494,10 +1539,9 @@ const AdminDashboard = () => {
                           <div className="space-y-4 max-h-[90vh] overflow-auto">
                             {mergedRecentRevenues.map((item) =>
                                 item.kind === "order" ? (
-                                    <div
-                                        key={`order-${item._id}`}
-                                        className="border rounded-lg p-4 space-y-3"
-                                    >
+                                    <div key={`order-${item._id}`} className={`border rounded-lg p-4 space-y-3 ${
+                                      item.status === "retrieved" ? "bg-red-50 border-red-200" : ""
+                                    }`}>
                                       <div className="flex items-center justify-between">
                                         <div>
                                           <p className="font-semibold">
@@ -1506,11 +1550,21 @@ const AdminDashboard = () => {
                                           <p className="text-sm text-gray-500">
                                             {item.orderType || "-"}
                                           </p>
+
+                                          {item.status === "retrieved" && (
+                                              <p className="text-xs text-red-500 mt-1">
+                                                طلب مرتجع
+                                              </p>
+                                          )}
                                         </div>
 
                                         <div className="text-left">
-                                          <p className="font-bold">{item.totalRevenue ?? 0} ₪</p>
-                                          <p className="text-xs text-gray-400">إجمالي الإيراد</p>
+                                          <p className={`font-bold ${item.status === "retrieved" ? "text-red-500" : ""}`}>
+                                            {item.status === "retrieved" ? `-${item.totalRevenue ?? 0}` : item.totalRevenue ?? 0} ₪
+                                          </p>
+                                          <p className="text-xs text-gray-400">
+                                            {item.status === "retrieved" ? "إيراد ملغي بسبب الاسترجاع" : "إجمالي الإيراد"}
+                                          </p>
                                         </div>
                                       </div>
 
@@ -1594,7 +1648,7 @@ const AdminDashboard = () => {
                       ) : (
                           <div className="space-y-3">
                             {monthlyReport.map((month, index) => (
-                                <div key={index} className="grid grid-cols-2 md:grid-cols-8 gap-3 border rounded-lg p-3">
+                                <div key={index} className="grid grid-cols-2 md:grid-cols-10 gap-3 border rounded-lg p-3">
                                   <div>
                                     <p className="text-sm text-gray-500">شهر</p>
                                     <p className="font-medium">{month.month}</p>
@@ -1618,13 +1672,23 @@ const AdminDashboard = () => {
                                   </div>
 
                                   <div>
-                                    <p className="text-sm text-gray-500">تكلفة البضاعة</p>
-                                    <p className="font-medium">{month.cogs ?? 0} ₪</p>
+                                    <p className="text-sm text-gray-500">صافي تكلفة البضاعة</p>
+                                    <p className="font-medium">{month.netCogs ?? 0} ₪</p>
                                   </div>
 
                                   <div>
                                     <p className="text-sm text-gray-500">المصاريف</p>
                                     <p className="font-medium">{month.expenses ?? 0} ₪</p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">المرتجعات</p>
+                                    <p className="font-medium text-red-500">{month.orderReturns ?? 0} ₪</p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-gray-500">تكلفة مسترجعة</p>
+                                    <p className="font-medium text-green-600">{month.returnedCogs ?? 0} ₪</p>
                                   </div>
 
                                   <div>

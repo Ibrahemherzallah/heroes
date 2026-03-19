@@ -51,6 +51,7 @@ const Index = () => {
               title: slideData.title,
               subtitle: slideData.subtitle,
               image: slideData.image,
+              mobileImage: slideData.mobileImage,
               order: slideData.order,
               isActive: slideData.isActive,
             }),
@@ -70,9 +71,6 @@ const Index = () => {
 
       setShowHeroSlideForm(false);
       setEditingHeroSlide(null);
-
-      // لو عندك fetch للإدارة
-      // await fetchHeroSlidesAdmin();
     } catch (error: any) {
       toast({
         title: "خطأ",
@@ -82,22 +80,21 @@ const Index = () => {
     }
   };
 
-    const scrollLeft = () => {
+  const scrollLeft = () => {
       scrollRef.current?.scrollBy({
         left: -scrollAmount,
         behavior: "smooth",
       });
     };
 
-    const scrollRight = () => {
+  const scrollRight = () => {
       scrollRef.current?.scrollBy({
         left: scrollAmount,
         behavior: "smooth",
       });
     };
 
-
-    useEffect(() => {
+  useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
@@ -132,6 +129,7 @@ const Index = () => {
     fetchCategories();
     fetchProducts();
   }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />

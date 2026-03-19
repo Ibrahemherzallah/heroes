@@ -38,24 +38,31 @@ export const getFinanceSummary = async (req, res) => {
         let totalExpenses = 0;
         let totalLosses = 0;
         let totalCOGS = 0;
+        let totalReturnedCOGS = 0;
+        let totalOrderReturns = 0;
 
         for (const tx of transactions) {
             currentBalance += tx.amount;
 
-            if (tx.type === "saleRevenue" || tx.type === 'manualRevenue' || tx.type === "deliveryRevenue") {
-                totalRevenue += tx.amount;
-            }
-
             if (tx.type === "saleRevenue") {
+                totalRevenue += tx.amount;
                 ordersRevenue += tx.amount;
             }
 
             if (tx.type === "manualRevenue") {
+                totalRevenue += tx.amount;
                 manualRevenue += tx.amount;
             }
 
             if (tx.type === "deliveryRevenue") {
+                totalRevenue += tx.amount;
                 totalDeliveryRevenue += tx.amount;
+            }
+
+            // المرتجعات تقلل الإيرادات
+            if (tx.type === "orderReturn") {
+                totalRevenue += tx.amount; // amount سالب
+                totalOrderReturns += Math.abs(tx.amount);
             }
 
             if (tx.type === "expense") {
@@ -66,18 +73,22 @@ export const getFinanceSummary = async (req, res) => {
                 totalLosses += Math.abs(tx.amount);
             }
 
-            if (tx.type === "productCost" || tx.type === 'loss') {
-                totalCOGS += Math.abs(tx.amount);
+            // productCost عند البيع يكون سالب
+            if (tx.type === "productCost") {
+                if (tx.amount < 0) {
+                    totalCOGS += Math.abs(tx.amount);
+                } else {
+                    // هذا استرجاع تكلفة بضاعة من طلب مرتجع
+                    totalReturnedCOGS += tx.amount;
+                }
             }
         }
 
-        const netProfit = totalRevenue  - totalCOGS - totalExpenses;
-        console.log("netProfit os : " , netProfit)
-        console.log("totalRevenue os : " , totalRevenue)
-        console.log("totalDeliveryRevenue os : " , totalDeliveryRevenue)
-        console.log("totalCOGS os : " , totalCOGS)
-        console.log("totalExpenses os : " , totalExpenses)
-        console.log("totalLosses os : " , totalLosses)
+        // صافي تكلفة البضاعة = تكلفة البيع - التكلفة المسترجعة
+        const netCOGS = totalCOGS - totalReturnedCOGS;
+
+        const netProfit =
+            totalRevenue - netCOGS - totalExpenses - totalLosses;
 
         res.json({
             currentBalance,
@@ -85,7 +96,9 @@ export const getFinanceSummary = async (req, res) => {
             totalDeliveryRevenue,
             totalExpenses,
             totalLosses,
-            totalCOGS,
+            totalCOGS: netCOGS,
+            totalOrderReturns,
+            totalReturnedCOGS,
             netProfit,
             ordersRevenue,
             manualRevenue
@@ -93,6 +106,39 @@ export const getFinanceSummary = async (req, res) => {
     } catch (error) {
         console.error("Finance summary error:", error);
         res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// DELETE financial transaction
+export const deleteFinancialTransaction = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const transaction = await FinancialTransaction.findById(id);
+
+        if (!transaction) {
+            return res.status(404).json({
+                error: "Transaction not found",
+            });
+        }
+
+        // تأكد أنه expense فقط (اختياري)
+        if (transaction.type !== "expense") {
+            return res.status(400).json({
+                error: "Only expenses can be deleted",
+            });
+        }
+
+        await transaction.deleteOne();
+
+        res.json({
+            message: "Transaction deleted successfully",
+        });
+    } catch (error) {
+        console.error("Delete transaction error:", error);
+        res.status(500).json({
+            error: "Internal server error",
+        });
     }
 };
 
@@ -131,13 +177,16 @@ export const getMonthlyReport = async (req, res) => {
             const month = item._id.month;
             const type = item._id.type;
             const total = item.total;
+
             if (!monthlyMap[month]) {
                 monthlyMap[month] = {
                     month,
                     revenue: 0,
                     deliveryRevenue: 0,
                     manualRevenue: 0,
+                    orderReturns: 0,
                     cogs: 0,
+                    returnedCogs: 0,
                     expenses: 0,
                     losses: 0,
                     net: 0
@@ -150,12 +199,18 @@ export const getMonthlyReport = async (req, res) => {
                 monthlyMap[month].deliveryRevenue = total;
             } else if (type === "manualRevenue") {
                 monthlyMap[month].manualRevenue = total;
+            } else if (type === "orderReturn") {
+                monthlyMap[month].orderReturns = Math.abs(total);
             } else if (type === "productCost") {
-                monthlyMap[month].cogs = total;
+                if (total < 0) {
+                    monthlyMap[month].cogs = Math.abs(total);
+                } else {
+                    monthlyMap[month].returnedCogs = total;
+                }
             } else if (type === "expense") {
-                monthlyMap[month].expenses = total;
+                monthlyMap[month].expenses = Math.abs(total);
             } else if (type === "loss") {
-                monthlyMap[month].losses = total;
+                monthlyMap[month].losses = Math.abs(total);
             }
         }
 
@@ -167,21 +222,33 @@ export const getMonthlyReport = async (req, res) => {
                 revenue: 0,
                 deliveryRevenue: 0,
                 manualRevenue: 0,
+                orderReturns: 0,
                 cogs: 0,
+                returnedCogs: 0,
                 expenses: 0,
                 losses: 0,
                 net: 0
             };
 
-            monthData.net =
+            const totalRevenue =
                 monthData.revenue +
                 monthData.deliveryRevenue +
-                monthData.manualRevenue +
-                monthData.cogs +
-                monthData.expenses +
+                monthData.manualRevenue -
+                monthData.orderReturns;
+
+            const netCogs = monthData.cogs - monthData.returnedCogs;
+
+            monthData.net =
+                totalRevenue -
+                netCogs -
+                monthData.expenses -
                 monthData.losses;
 
-            return monthData;
+            return {
+                ...monthData,
+                totalRevenue,
+                netCogs
+            };
         });
 
         res.json({ year, report });

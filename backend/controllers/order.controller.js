@@ -315,7 +315,7 @@ export const getRecentOrderFinance = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(limit)
             .select(
-                "orderNumber orderType fullName price deliveryPrice createdAt products region"
+                "orderNumber orderType fullName price deliveryPrice createdAt products region status retrievedAt"
             );
 
         const formatted = orders.map((order) => {
@@ -337,6 +337,8 @@ export const getRecentOrderFinance = async (req, res) => {
                 orderNumber: order.orderNumber,
                 orderType: order.orderType,
                 fullName: order.fullName,
+                status: order.status,
+                retrievedAt: order.retrievedAt || null,
                 productRevenue,
                 cogs,
                 productProfit,
@@ -356,6 +358,93 @@ export const getRecentOrderFinance = async (req, res) => {
     }
 };
 
+export const retrieveOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({
+                error: "Order not found"
+            });
+        }
+
+        if (order.status === "retrieved" || order.isRetrieved) {
+            return res.status(400).json({
+                error: "This order has already been retrieved"
+            });
+        }
+
+        let itemsCost = 0;
+
+        for (const item of order.products) {
+            let product = null;
+
+            product = await Product.findOne({ id: item.productId });
+
+            const productOriginalPrice = item.originalPrice || 0;
+            const lineCost = productOriginalPrice * item.quantity;
+            itemsCost += lineCost;
+
+            if (product && product.type === "inStore") {
+                product.stock += item.quantity;
+
+                if (product.stock > 0) {
+                    product.isSoldOut = false;
+                }
+
+                await product.save();
+            }
+
+            await InventoryTransaction.create({
+                productId: product._id,
+                type: "restock",
+                quantity: item.quantity,
+                costPerItem: productOriginalPrice,
+                totalCost: lineCost,
+                orderId: order._id,
+                note: "Retrieved order return to stock"
+            });
+        }
+
+        const deliveryRevenue =
+            order.orderType === "whatsapp" || order.orderType === "website"
+                ? getDeliveryRevenue(order.region)
+                : 0;
+
+        await FinancialTransaction.create({
+            type: "orderReturn",
+            amount: -(order.price || 0),
+            orderId: order._id,
+            description: "Reverse order revenue for retrieved order"
+        });
+
+
+        await FinancialTransaction.create({
+            type: "productCost",
+            amount: itemsCost,
+            orderId: order._id,
+            description: "Restore returned products cost to inventory"
+        });
+
+        order.status = "retrieved";
+        order.isRetrieved = true;
+        order.retrievedAt = new Date();
+
+        await order.save();
+
+        res.json({
+            message: "Order retrieved successfully",
+            order
+        });
+    } catch (error) {
+        console.error("Retrieve order error:", error);
+        res.status(500).json({
+            error: "Internal server error"
+        });
+    }
+};
 
 export const getAllOrders = async (req, res) => {
     try {

@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { toast } from '@/hooks/use-toast';
 
 type HeroSlide = {
     _id?: string;
     title: string;
     subtitle: string;
     image: string;
+    mobileImage?: string;
     order: number;
     isActive: boolean;
 };
@@ -26,66 +28,113 @@ export default function HeroSlideForm({slide, onSave, onCancel,}: HeroSlideFormP
         title: slide?.title || "",
         subtitle: slide?.subtitle || "",
         image: slide?.image || "",
+        mobileImage: slide?.mobileImage || "",
         order: slide?.order || 0,
         isActive: slide?.isActive ?? true,
     });
 
-    const [imagePreview, setImagePreview] = useState<string>(slide?.image || "");
-    const [uploading, setUploading] = useState(false);
+    const [desktopPreview, setDesktopPreview] = useState<string>(slide?.image || "");
+    const [mobilePreview, setMobilePreview] = useState<string>(slide?.mobileImage || "");
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const [uploadingDesktop, setUploadingDesktop] = useState(false);
+    const [uploadingMobile, setUploadingMobile] = useState(false);
 
-        try {
-            setUploading(true);
-
-            const storageRef = ref(storage, `hero-slides/${Date.now()}-${file.name}`);
+    const uploadImageToFirebase = async (
+        file: File,
+        folder: string
+    ): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const storageRef = ref(storage, `${folder}/${Date.now()}-${file.name}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
                 "state_changed",
                 () => {},
-                () => {
-                    toast({
-                        title: "خطأ",
-                        description: "فشل رفع الصورة",
-                        variant: "destructive",
-                    });
-                    setUploading(false);
-                },
+                (error) => reject(error),
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    setImagePreview(downloadURL);
-                    setFormData((prev) => ({
-                        ...prev,
-                        image: downloadURL,
-                    }));
-                    setUploading(false);
+                    resolve(downloadURL);
                 }
             );
+        });
+    };
+
+    const handleDesktopImageUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setUploadingDesktop(true);
+
+            const downloadURL = await uploadImageToFirebase(file, "hero-slides/desktop");
+
+            setDesktopPreview(downloadURL);
+            setFormData((prev) => ({
+                ...prev,
+                image: downloadURL,
+            }));
         } catch (error) {
-            setUploading(false);
             toast({
                 title: "خطأ",
-                description: "حدث خطأ أثناء رفع الصورة",
+                description: "فشل رفع صورة الديسكتوب",
                 variant: "destructive",
             });
+        } finally {
+            setUploadingDesktop(false);
+            e.target.value = "";
         }
     };
 
-    const removeImage = () => {
-        setImagePreview("");
+    const handleMobileImageUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setUploadingMobile(true);
+
+            const downloadURL = await uploadImageToFirebase(file, "hero-slides/mobile");
+
+            setMobilePreview(downloadURL);
+            setFormData((prev) => ({
+                ...prev,
+                mobileImage: downloadURL,
+            }));
+        } catch (error) {
+            toast({
+                title: "خطأ",
+                description: "فشل رفع صورة الموبايل",
+                variant: "destructive",
+            });
+        } finally {
+            setUploadingMobile(false);
+            e.target.value = "";
+        }
+    };
+
+    const removeDesktopImage = () => {
+        setDesktopPreview("");
         setFormData((prev) => ({
             ...prev,
             image: "",
         }));
     };
 
+    const removeMobileImage = () => {
+        setMobilePreview("");
+        setFormData((prev) => ({
+            ...prev,
+            mobileImage: "",
+        }));
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.title) {
+        if (!formData.title.trim()) {
             toast({
                 title: "خطأ",
                 description: "يرجى إدخال عنوان السلايد",
@@ -97,7 +146,7 @@ export default function HeroSlideForm({slide, onSave, onCancel,}: HeroSlideFormP
         if (!formData.image) {
             toast({
                 title: "خطأ",
-                description: "يرجى رفع صورة",
+                description: "يرجى رفع صورة الديسكتوب",
                 variant: "destructive",
             });
             return;
@@ -110,7 +159,7 @@ export default function HeroSlideForm({slide, onSave, onCancel,}: HeroSlideFormP
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
             <div>
                 <Label>العنوان</Label>
                 <Input
@@ -155,30 +204,87 @@ export default function HeroSlideForm({slide, onSave, onCancel,}: HeroSlideFormP
                 />
             </div>
 
-            <div>
-                <Label>الصورة</Label>
-                <Input type="file" accept="image/*" onChange={handleImageUpload} />
+            <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-3">
+                    <Label>صورة الديسكتوب</Label>
+                    <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleDesktopImageUpload}
+                    />
+
+                    {uploadingDesktop && (
+                        <p className="text-sm text-gray-500">جاري رفع صورة الديسكتوب...</p>
+                    )}
+
+                    {desktopPreview ? (
+                        <div className="space-y-2">
+                            <img
+                                src={desktopPreview}
+                                alt="desktop preview"
+                                className="w-full h-44 object-cover rounded-lg border"
+                            />
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={removeDesktopImage}
+                                >
+                                    حذف صورة الديسكتوب
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-400">لم يتم رفع صورة ديسكتوب بعد</p>
+                    )}
+                </div>
+
+                <div className="space-y-3">
+                    <Label>صورة الموبايل</Label>
+                    <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleMobileImageUpload}
+                    />
+
+                    {uploadingMobile && (
+                        <p className="text-sm text-gray-500">جاري رفع صورة الموبايل...</p>
+                    )}
+
+                    {mobilePreview ? (
+                        <div className="space-y-2">
+                            <img
+                                src={mobilePreview}
+                                alt="mobile preview"
+                                className="w-full h-44 object-cover rounded-lg border"
+                            />
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={removeMobileImage}
+                                >
+                                    حذف صورة الموبايل
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-400">
+                            اختياري: يمكن رفع صورة مخصصة للموبايل
+                        </p>
+                    )}
+                </div>
             </div>
 
-            {imagePreview && (
-                <div className="space-y-2">
-                    <img
-                        src={imagePreview}
-                        alt="preview"
-                        className="w-full h-48 object-cover rounded-lg border"
-                    />
-                    <Button type="button" variant="destructive" onClick={removeImage}>
-                        حذف الصورة
-                    </Button>
-                </div>
-            )}
-
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={onCancel}>
                     إلغاء
                 </Button>
-                <Button type="submit" disabled={uploading}>
-                    {uploading ? "جاري رفع الصورة..." : "حفظ"}
+                <Button
+                    type="submit"
+                    disabled={uploadingDesktop || uploadingMobile}
+                >
+                    {uploadingDesktop || uploadingMobile ? "جاري رفع الصور..." : "حفظ"}
                 </Button>
             </div>
         </form>
