@@ -34,7 +34,18 @@ app.use('/api/hero-slides',heroSliderRoutes);
 const staticPath = path.join(__dirname, 'static');
 app.use(express.static(staticPath));
 
-app.listen(PORT , ()=> {
-    connectMongoDB()
-    console.log(`Server is running on http://localhost:${PORT}`);
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+        return next(); // Skip this handler for API routes
+    }
+    res.sendFile(path.join(staticPath, 'index.html'));
 });
+
+try {
+    app.listen(PORT, () => {
+        connectMongoDB();
+        console.log(`Server is running on http://localhost:${PORT}`);
+    });
+} catch (err) {
+    console.error('Error starting server:', err);
+}

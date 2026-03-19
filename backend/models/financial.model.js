@@ -13,7 +13,9 @@ const financialTransactionSchema = new mongoose.Schema({
             "deliveryRevenue",
             "productCost",
             "loss",
-            "expense"
+            "expense",
+            "orderReturn",
+            "deliveryReturn"
         ],
         required: true
     },

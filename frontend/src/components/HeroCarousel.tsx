@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 
 type HeroSlide = {
     _id: string;
     title: string;
     subtitle: string;
     image: string;
+    mobileImage: string;
     order: number;
     isActive: boolean;
 };
@@ -65,10 +67,12 @@ export default function HeroCarousel({isAdmin, onEditSlide, onAddSlide}: HeroCar
 
                     {isAdmin && (
                         <div className="mt-6">
-                            <button onClick={onAddSlide}
-                                className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-black/90 transition-colors"
+                            <button
+                                onClick={onAddSlide}
+                                className="flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black transition-colors shadow"
                             >
-                                إضافة صورة جديدة
+                                <Plus size={16} />
+                                إضافة صورة
                             </button>
                         </div>
                     )}
@@ -80,6 +84,16 @@ export default function HeroCarousel({isAdmin, onEditSlide, onAddSlide}: HeroCar
     return (
         <section className="relative overflow-hidden">
             <div className="relative h-[240px] sm:h-[300px] md:h-[520px] w-full">
+                {isAdmin && (
+                    <div className="absolute top-3 left-3 z-30">
+                        <button
+                            onClick={onAddSlide}
+                            className="bg-black/80 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black transition-colors shadow"
+                        >
+                            + إضافة صورة
+                        </button>
+                    </div>
+                )}
                 {heroSlides.map((slide, index) => (
                     <div
                         key={slide._id}
@@ -87,11 +101,16 @@ export default function HeroCarousel({isAdmin, onEditSlide, onAddSlide}: HeroCar
                             index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
                         }`}
                     >
-                        <img
-                            src={slide.image}
-                            alt={slide.title}
-                            className="w-full h-full object-cover object-center md:object-center"
-                        />
+                        <picture className="block w-full h-full">
+                            {slide.mobileImage && (
+                                <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
+                            )}
+                            <img
+                                src={slide.image}
+                                alt={slide.title}
+                                className="w-full h-full object-cover object-center"
+                            />
+                        </picture>
 
                         <div className="absolute inset-0 bg-black/30 md:bg-black/45" />
 

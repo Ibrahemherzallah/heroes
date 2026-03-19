@@ -33,22 +33,36 @@ export const getAllHeroSlides = async (req, res) => {
 };
 
 // CREATE new slide
+// CREATE new slide
 export const createHeroSlide = async (req, res) => {
     try {
-        const { title, subtitle, image, order, isActive } = req.body;
+        const {
+            title,
+            subtitle,
+            image,
+            mobileImage,
+            order,
+            isActive
+        } = req.body;
 
         if (!title || !image) {
             return res.status(400).json({
-                error: "Title and image are required",
+                error: "Title and desktop image are required",
             });
         }
 
         const newSlide = await HeroSlide.create({
-            title,
-            subtitle: subtitle || "",
+            title: title.trim(),
+            subtitle: subtitle?.trim() || "",
             image,
-            order: typeof order === "number" ? order : Number(order) || 0,
-            isActive: typeof isActive === "boolean" ? isActive : true,
+            mobileImage: mobileImage || "",
+            order: Number(order) || 0,
+            isActive:
+                typeof isActive === "boolean"
+                    ? isActive
+                    : isActive === "false"
+                        ? false
+                        : true,
         });
 
         res.status(201).json({
@@ -66,7 +80,14 @@ export const createHeroSlide = async (req, res) => {
 export const updateHeroSlide = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, subtitle, image, order, isActive } = req.body;
+        const {
+            title,
+            subtitle,
+            image,
+            mobileImage,
+            order,
+            isActive
+        } = req.body;
 
         const slide = await HeroSlide.findById(id);
 
@@ -76,12 +97,34 @@ export const updateHeroSlide = async (req, res) => {
             });
         }
 
-        slide.title = title ?? slide.title;
-        slide.subtitle = subtitle ?? slide.subtitle;
-        slide.image = image ?? slide.image;
-        slide.order = typeof order === "number" ? order : Number(order) || slide.order;
-        slide.isActive =
-            typeof isActive === "boolean" ? isActive : slide.isActive;
+        if (typeof title !== "undefined") {
+            slide.title = title.trim();
+        }
+
+        if (typeof subtitle !== "undefined") {
+            slide.subtitle = subtitle?.trim() || "";
+        }
+
+        if (typeof image !== "undefined") {
+            slide.image = image;
+        }
+
+        if (typeof mobileImage !== "undefined") {
+            slide.mobileImage = mobileImage;
+        }
+
+        if (typeof order !== "undefined") {
+            slide.order = Number(order) || 0;
+        }
+
+        if (typeof isActive !== "undefined") {
+            slide.isActive =
+                typeof isActive === "boolean"
+                    ? isActive
+                    : isActive === "false"
+                        ? false
+                        : true;
+        }
 
         await slide.save();
 
