@@ -109,7 +109,6 @@ export const getFinanceSummary = async (req, res) => {
     }
 };
 
-// DELETE financial transaction
 export const deleteFinancialTransaction = async (req, res) => {
     try {
         const { id } = req.params;
