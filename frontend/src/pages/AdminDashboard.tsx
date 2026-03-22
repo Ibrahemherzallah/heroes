@@ -1475,9 +1475,10 @@ const AdminDashboard = () => {
                     <FinanceCard title="إيرادات التوصيل" value={financeSummary?.totalDeliveryRevenue}/>
                     <FinanceCard title="إيرادات الطلبات" value={financeSummary?.ordersRevenue}/>
                     <FinanceCard title="إيرادات يدوية" value={financeSummary?.manualRevenue}/>
-                    <FinanceCard title="إجمالي الإيرادات" value={financeSummary?.totalRevenue}/>
                     <FinanceCard title="مرتجعات الطلبات" value={financeSummary?.totalOrderReturns} />
+                    <FinanceCard title="إجمالي الإيرادات" value={financeSummary?.totalRevenue}/>
                     <FinanceCard title="تكلفة البضاعة" value={financeSummary?.totalCOGS}/>
+                    <FinanceCard title="المبيعات الصفرية" value={financeSummary?.totalLosses}/>
                     <FinanceCard title="صافي الربح" value={financeSummary?.netProfit}/>
                   </div>
 
