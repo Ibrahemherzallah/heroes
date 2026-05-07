@@ -44,6 +44,10 @@ const productSchema = new mongoose.Schema({
         required: false,
         default: false
     },
+    isSpecialOffer: {
+        type: Boolean,
+        default: false,
+    },
     description: {
         type: String,
         default: "",

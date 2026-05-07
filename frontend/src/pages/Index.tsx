@@ -2,11 +2,9 @@ import {useState, useEffect, useRef} from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import ProductGrid from '@/components/ProductGrid';
+import SpecialOffersGrid from "@/components/SpecialOffersGrid";
 import { Product } from '@/contexts/CartContext';
 import { FaFacebook, FaTiktok, FaWhatsapp } from 'react-icons/fa';
-import { FaHeadphones } from "react-icons/fa";
-import {getCategoryDescription, getCategoryIcon} from "@/utils/categoryIcons.tsx";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import HeroCarousel from "@/components/HeroCarousel.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import HeroSlideForm from '@/components/HeroSlideForm';
@@ -20,10 +18,13 @@ const Index = () => {
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
-  const scrollAmount = 455;
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [specialOffers, setSpecialOffers] = useState<Product[]>([]);
   const token = localStorage.getItem("token");
+  const [showAll, setShowAll] = useState(false);
 
+  const visibleCategories = showAll
+      ? categories
+      : categories.slice(0, 14);
 
   const [showHeroSlideForm, setShowHeroSlideForm] = useState(false);
   const [editingHeroSlide, setEditingHeroSlide] = useState<any | null>(null);
@@ -80,19 +81,7 @@ const Index = () => {
     }
   };
 
-  const scrollLeft = () => {
-      scrollRef.current?.scrollBy({
-        left: -scrollAmount,
-        behavior: "smooth",
-      });
-    };
 
-  const scrollRight = () => {
-      scrollRef.current?.scrollBy({
-        left: scrollAmount,
-        behavior: "smooth",
-      });
-    };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -125,7 +114,25 @@ const Index = () => {
         setCategoriesLoading(false);
       }
     };
+    const fetchSpecialOffers = async () => {
+      try {
+        const res = await fetch(
+            `${import.meta.env.VITE_ENV}/api/product/special-offers`
+        );
 
+        if (!res.ok) {
+          throw new Error("فشل تحميل العروض الخاصة");
+        }
+
+        const data = await res.json();
+
+        setSpecialOffers(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchSpecialOffers()
     fetchCategories();
     fetchProducts();
   }, []);
@@ -147,60 +154,48 @@ const Index = () => {
       />
 
       {/* Categories Section */}
-      <section className="py-14 bg-white">
-        <div className="container mx-auto px-4 relative">
+      <section className="py-10 bg-white">
+        <div className="container mx-auto px-4">
 
-          <h2 className="text-3xl font-bold mb-8 text-center">
+          <h2 className="text-3xl font-bold mb-10 text-center">
             فئات المنتجات
           </h2>
 
-          {/* Left Button */}
-          <button onClick={scrollLeft} className="absolute left-0 top-[60%] -translate-y-1/2 bg-white shadow-md p-3 rounded-full z-10 hover:bg-gray-100">
-            <ChevronLeft size={22} />
-          </button>
+          {/* Categories Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-5">
+            {visibleCategories.map((category: any) => (
+                <Link key={category._id} to={`/products?category=${category._id}`} className="flex flex-col items-center text-center group">
+                  {/* Image */}
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gray-100 shadow-sm border border-gray-200 group-hover:scale-105 transition-transform duration-300">
+                    <img src={category.image} alt={category.name} className="w-full h-full object-cover"/>
+                  </div>
 
-          {/* Right Button */}
-          <button onClick={scrollRight} className="absolute right-0 top-[60%] -translate-y-1/2 bg-white shadow-md p-3 rounded-full z-10 hover:bg-gray-100">
-            <ChevronRight size={22} />
-          </button>
-
-          {/* Scroll Container */}
-          <div ref={scrollRef} className="flex gap-6 overflow-x-auto scroll-smooth no-scrollbar">
-            {categories.map((category: any) => {
-              const Icon = getCategoryIcon(category.name);
-              const description = category.description || getCategoryDescription(category.name);
-
-              return (
-                  <Link key={category._id} to={`/products?category=${category._id}`}>
-                    <div
-                        className="flex-shrink-0 h-56 bg-[#ebf9eb] rounded-2xl
-                        flex flex-col items-center justify-center
-                        cursor-pointer transition-all duration-300 ease-in-out
-                        hover:bg-[#ebf4eb] hover:shadow-[0_10px_20px_rgba(0,0,0,0.08)]
-                        hover:-translate-y-1"
-                        style={{width:'27rem'}}
-                    >
-                      {/* Icon */}
-                      <div className="w-16 h-16 bg-heroes-blue rounded-full flex items-center justify-center text-white mb-4">
-                        <Icon size={24} />
-                      </div>
-
-                      {/* Title */}
-                      <p className="text-lg font-semibold text-center px-4 mb-2">
-                        {category.name}
-                      </p>
-
-                      {/* Description */}
-                      <p className="text-sm text-gray-600 text-center px-6 leading-relaxed">
-                        {description}
-                      </p>
-                    </div>
-                  </Link>
-              );
-            })}
+                  {/* Name */}
+                  <p className="mt-3 text-sm font-medium text-gray-700 leading-tight">
+                    {category.name}
+                  </p>
+                </Link>
+            ))}
           </div>
+
+
+          {/* Show More Button */}
+          {categories.length > 10 && (
+              <div className="flex justify-center mt-10">
+                <button
+                    onClick={() => setShowAll(!showAll)}
+                    className="px-6 py-2 rounded-full border border-gray-300 hover:bg-gray-100 transition"
+                >
+                  {showAll ? "عرض أقل" : "عرض المزيد"}
+                </button>
+              </div>
+          )}
         </div>
       </section>
+
+      {specialOffers.length > 0 && (
+          <SpecialOffersGrid products={specialOffers} />
+      )}
 
       {/* Products Section */}
       <section className="py-16 bg-gray-50">

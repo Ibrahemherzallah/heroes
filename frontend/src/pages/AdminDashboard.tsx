@@ -361,6 +361,46 @@ const AdminDashboard = () => {
     }
   };
 
+  const toggleSpecialOffer = async (productId: string) => {
+    try {
+      const res = await fetch(
+          `${import.meta.env.VITE_ENV}/api/product/${productId}/toggle-special-offer`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+
+      if (!res.ok) {
+        throw new Error("فشل تحديث العرض الخاص");
+      }
+
+      const updatedProduct = await res.json();
+
+      setProducts((prev) =>
+          prev.map((product) =>
+              product._id === productId
+                  ? updatedProduct
+                  : product
+          )
+      );
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم تحديث العرض الخاص",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل تحديث العرض الخاص",
+        variant: "destructive",
+      });
+    }
+  };
+
+
   const saveNewOrder = async (products) => {
     await fetch(`${import.meta.env.VITE_ENV}/api/product/reorder`, {
       method: "POST",
@@ -1078,6 +1118,16 @@ const AdminDashboard = () => {
                                               checked={product.isFeatured || false}
                                               onCheckedChange={() =>
                                                   toggleFeatured(product._id)
+                                              }
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-2">
+                                          <span className="text-sm">عرض خاص</span>
+
+                                          <Switch
+                                              checked={product.isSpecialOffer || false}
+                                              onCheckedChange={() =>
+                                                  toggleSpecialOffer(product._id)
                                               }
                                           />
                                         </div>

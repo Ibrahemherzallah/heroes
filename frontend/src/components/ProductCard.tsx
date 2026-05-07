@@ -16,8 +16,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorite();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isWholesaler = user?.role === "wholesaler";
-
-  console.log("The product is : ",  product)
   const handleAddToCart = () => {
     if (product.isSoldOut) {
       toast({

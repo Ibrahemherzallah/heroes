@@ -91,6 +91,44 @@ export const getFeaturedProducts = async (req, res) => {
     }
 };
 
+export const getSpecialOffers = async (req, res) => {
+    try {
+        const products = await Product.find({
+            isSpecialOffer: true,
+        })
+            .populate("categoryId")
+            .sort({ createdAt: -1 });
+
+        res.status(200).json(products);
+    } catch (error) {
+        res.status(500).json({
+            error: "فشل تحميل العروض الخاصة",
+        });
+    }
+};
+
+export const toggleSpecialOffer = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({
+                error: "المنتج غير موجود",
+            });
+        }
+
+        product.isSpecialOffer = !product.isSpecialOffer;
+
+        await product.save();
+
+        res.status(200).json(product);
+    } catch (error) {
+        res.status(500).json({
+            error: "فشل تحديث العرض الخاص",
+        });
+    }
+};
+
 
 export const reorderProduct = async (req, res) => {
     try {
