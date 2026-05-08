@@ -29,6 +29,7 @@ export default function HeroSlideForm({slide, onSave, onCancel,}: HeroSlideFormP
         subtitle: slide?.subtitle || "",
         image: slide?.image || "",
         mobileImage: slide?.mobileImage || "",
+        linkUrl: slide?.linkUrl || "",
         order: slide?.order || 0,
         isActive: slide?.isActive ?? true,
     });
@@ -134,10 +135,10 @@ export default function HeroSlideForm({slide, onSave, onCancel,}: HeroSlideFormP
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.title.trim()) {
+        if (!formData.linkUrl.trim()) {
             toast({
                 title: "خطأ",
-                description: "يرجى إدخال عنوان السلايد",
+                description: "يرجى إدخال رابط الفئة",
                 variant: "destructive",
             });
             return;
@@ -161,25 +162,15 @@ export default function HeroSlideForm({slide, onSave, onCancel,}: HeroSlideFormP
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-                <Label>العنوان</Label>
+                <Label>رابط الفئة</Label>
                 <Input
-                    value={formData.title}
+                    placeholder="مثال: /products?category=69d912cce82b9014a1209912"
+                    value={formData.linkUrl}
                     onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, title: e.target.value }))
+                        setFormData((prev) => ({ ...prev, linkUrl: e.target.value }))
                     }
                 />
             </div>
-
-            <div>
-                <Label>العنوان الفرعي</Label>
-                <Input
-                    value={formData.subtitle}
-                    onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, subtitle: e.target.value }))
-                    }
-                />
-            </div>
-
             <div>
                 <Label>الترتيب</Label>
                 <Input
