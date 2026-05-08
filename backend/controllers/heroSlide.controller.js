@@ -37,32 +37,28 @@ export const getAllHeroSlides = async (req, res) => {
 export const createHeroSlide = async (req, res) => {
     try {
         const {
-            title,
-            subtitle,
             image,
             mobileImage,
             order,
+            linkUrl,
             isActive
         } = req.body;
 
-        if (!title || !image) {
+        if (!image) {
             return res.status(400).json({
                 error: "Title and desktop image are required",
             });
         }
 
         const newSlide = await HeroSlide.create({
-            title: title.trim(),
-            subtitle: subtitle?.trim() || "",
             image,
             mobileImage: mobileImage || "",
             order: Number(order) || 0,
+            linkUrl,
             isActive:
                 typeof isActive === "boolean"
                     ? isActive
-                    : isActive === "false"
-                        ? false
-                        : true,
+                    : isActive !== "false",
         });
 
         res.status(201).json({
@@ -81,11 +77,10 @@ export const updateHeroSlide = async (req, res) => {
     try {
         const { id } = req.params;
         const {
-            title,
-            subtitle,
             image,
             mobileImage,
             order,
+            linkUrl,
             isActive
         } = req.body;
 
@@ -95,14 +90,6 @@ export const updateHeroSlide = async (req, res) => {
             return res.status(404).json({
                 error: "Hero slide not found",
             });
-        }
-
-        if (typeof title !== "undefined") {
-            slide.title = title.trim();
-        }
-
-        if (typeof subtitle !== "undefined") {
-            slide.subtitle = subtitle?.trim() || "";
         }
 
         if (typeof image !== "undefined") {

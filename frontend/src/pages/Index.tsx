@@ -49,10 +49,9 @@ const Index = () => {
             method: isEdit ? "PUT" : "POST",
             headers,
             body: JSON.stringify({
-              title: slideData.title,
-              subtitle: slideData.subtitle,
               image: slideData.image,
               mobileImage: slideData.mobileImage,
+              linkUrl: slideData.linkUrl,
               order: slideData.order,
               isActive: slideData.isActive,
             }),
@@ -282,12 +281,10 @@ const Index = () => {
           </div>
         </div>
       </footer>
-      <Dialog open={showHeroSlideForm || !!editingHeroSlide}
-          onOpenChange={() => {
+      <Dialog open={showHeroSlideForm || !!editingHeroSlide} onOpenChange={() => {
             setShowHeroSlideForm(false);
             setEditingHeroSlide(null);
-          }}
-      >
+          }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle style={{ textAlign: "start" }}>
