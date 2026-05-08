@@ -49,14 +49,14 @@ const SpecialOfferCard: React.FC<Props> = ({ product }) => {
             )}
 
             <Link to={`/product/${product._id}`}>
-                <div className="relative h-56 overflow-hidden">
+                <div className="relative h-72 sm:h-56 overflow-hidden bg-white">
                     <img
                         src={Array.isArray(product.image) ? product.image[0] : product.image}
                         alt={product.productName}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                     />
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
                     <h3 className="absolute bottom-4 right-4 left-4 text-white text-lg font-bold line-clamp-2">
                         {product.productName}
@@ -74,24 +74,20 @@ const SpecialOfferCard: React.FC<Props> = ({ product }) => {
                         <p className="text-xs text-gray-500 mb-1">السعر الآن</p>
 
                         <div className="flex items-center gap-2">
-              <span className="text-2xl font-extrabold text-heroes-red">
-                {displayPrice?.toFixed(2)} ₪
-              </span>
+                                  <span className="text-2xl font-extrabold text-heroes-red">
+                                    {displayPrice?.toFixed(2)} ₪
+                                  </span>
 
-                            {oldPrice && (
+                                {oldPrice && (
                                 <span className="text-sm text-gray-400 line-through">
-                  {oldPrice.toFixed(2)} ₪
-                </span>
+                                  {oldPrice.toFixed(2)} ₪
+                                </span>
                             )}
                         </div>
                     </div>
                 </div>
 
-                <Button
-                    onClick={handleAddToCart}
-                    disabled={product.isSoldOut}
-                    className="w-full rounded-full bg-orange-500 hover:bg-orange-600 text-white"
-                >
+                <Button onClick={handleAddToCart} disabled={product.isSoldOut} className="w-full rounded-full bg-orange-500 hover:bg-orange-600 text-white">
                     {product.isSoldOut ? "نفدت الكمية" : "احصل على العرض"}
                 </Button>
             </div>
