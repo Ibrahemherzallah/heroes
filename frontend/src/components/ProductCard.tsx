@@ -6,6 +6,7 @@ import { Product, useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import { Heart } from "lucide-react";
 import { useFavorite } from "@/contexts/FavoriteContext";
+import { FaWhatsapp } from 'react-icons/fa';
 
 interface ProductCardProps {
   product: Product;
@@ -102,14 +103,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {
           product?.categoryId?.name !== "إشتراكات" && (
               <CardFooter className="p-4 pt-0">
-                <Button onClick={handleAddToCart} className={`w-full ${product.isSoldOut
-                    ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
-                    : 'bg-heroes-red hover:bg-heroes-red/90'
-                }`}
-                        disabled={product.isSoldOut}
-                >
-                  {product.isSoldOut ? 'نفدت الكمية' : '  إضافة للسلة'}
-                </Button>
+                <div className="flex items-center gap-2 w-full">
+
+                  {/* Add To Cart */}
+                  <Button
+                      onClick={handleAddToCart}
+                      className={`flex-1 ${
+                          product.isSoldOut
+                              ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+                              : "bg-heroes-red hover:bg-heroes-red/90"
+                      }`}
+                      disabled={product.isSoldOut}
+                  >
+                    {product.isSoldOut ? "نفدت الكمية" : "إضافة للسلة"}
+                  </Button>
+
+                  {/* WhatsApp */}
+                  <a
+                      href="https://api.whatsapp.com/message/BL3LV2SY7XJGN1?autoload=1&app_absent=0"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-10 w-10 flex items-center justify-center rounded-md bg-green-500 hover:bg-green-600 transition text-white shrink-0"
+                  >
+                    <FaWhatsapp size={20} />
+                  </a>
+                </div>
               </CardFooter>
           )
       }
